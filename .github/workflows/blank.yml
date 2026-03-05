@@ -1,0 +1,69 @@
+name: SoulFire 24/7 Bot Runner
+concurrency:
+  group: soulfire-bot
+  cancel-in-progress: false
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [ restart_bot ]
+
+jobs:
+  run-soulfire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Create SoulFire Local Environment
+        run: |
+          mkdir -p .soulfire
+          
+          # 1. Setup the Bot Account (Offline Mode)
+          cat << 'EOF' > .soulfire/accounts.json
+          [
+            {
+              "username": "SoulBot_247",
+              "type": "offline",
+              "stay_online": true
+            }
+          ]
+          EOF
+
+          # 2. Setup the Connection (Falix IP + Custom Port)
+          cat << 'EOF' > .soulfire/settings.json
+          {
+            "server_address": "ahsmpw.falixsrv.me",
+            "server_port": 21987,
+            "anti_afk": true,
+            "auto_reconnect": true,
+            "reconnect_delay": 5000,
+            "show_chat": true,
+            "auto_respawn": true
+          }
+          EOF
+
+      - name: Start SoulFire Dedicated
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Download the official SoulFire Dedicated Jar
+          curl -L -o SoulFire.jar https://github.com/AlexProgrammerDE/SoulFire/releases/latest/download/SoulFireDedicated.jar
+          
+          # Run the bot with headless terminal settings
+          java -Xmx1G -Dterminal.jline=false -jar SoulFire.jar --config ./.soulfire &
+          
+          echo "🚀 Bot is heading to ahsmpw.falixsrv.me:21987"
+          
+          # 5 Hours 50 Minutes Timer (The 24/7 Loop)
+          sleep 350m
+          
+          # Restart the cycle
+          curl -L -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type": "restart_bot"}'
