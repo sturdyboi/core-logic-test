@@ -3,262 +3,14 @@ name: SoulFire AFK Bot
 on:
   workflow_dispatch:
     inputs:
-      # === Server Connection ===
-      server_address:
-        description: 'Minecraft server address (e.g., play.example.com)'
-        required: false
-        default: 'ahsmpw.falixsrv.me'
-      server_port:
-        description: 'Server port'
-        required: false
-        default: '25565'
-      protocol_version:
-        description: 'Minecraft protocol version (empty for auto-detect)'
-        required: false
-        default: ''
-
-      # === Bot Configuration ===
-      bot_amount:
-        description: 'Number of bot instances'
-        required: false
-        default: '1'
       username:
-        description: 'Bot username (for cracked/offline servers)'
+        description: 'Bot username (for cracked servers)'
         required: false
         default: 'AFKBot'
-      username_format:
-        description: 'Username format (for multiple bots, e.g., Bot%d)'
+      server:
+        description: 'Minecraft server address'
         required: false
-        default: ''
-
-      # === Account Settings ===
-      account_type:
-        description: 'Account authentication type'
-        required: false
-        type: choice
-        options:
-          - 'OFFLINE'
-          - 'MICROSOFT'
-          - 'MOJANG'
-        default: 'OFFLINE'
-      microsoft_email:
-        description: 'Microsoft account email (for Microsoft auth)'
-        required: false
-        default: ''
-      microsoft_password:
-        description: 'Microsoft account password (use secrets for security!)'
-        required: false
-        default: ''
-
-      # === Join Settings ===
-      join_delay_min:
-        description: 'Minimum join delay in seconds (for multiple bots)'
-        required: false
-        default: '0'
-      join_delay_max:
-        description: 'Maximum join delay in seconds (for multiple bots)'
-        required: false
-        default: '5'
-
-      # === Anti-AFK Settings ===
-      anti_afk_enabled:
-        description: 'Enable anti-AFK to prevent being kicked'
-        required: false
-        type: boolean
-        default: true
-      anti_afk_delay_min:
-        description: 'Minimum anti-AFK action delay in seconds'
-        required: false
-        default: '30'
-      anti_afk_delay_max:
-        description: 'Maximum anti-AFK action delay in seconds'
-        required: false
-        default: '60'
-      anti_afk_distance_min:
-        description: 'Minimum movement distance for anti-AFK'
-        required: false
-        default: '1'
-      anti_afk_distance_max:
-        description: 'Maximum movement distance for anti-AFK'
-        required: false
-        default: '3'
-
-      # === Auto-Reconnect Settings ===
-      auto_reconnect_enabled:
-        description: 'Enable automatic reconnection on disconnect'
-        required: false
-        type: boolean
-        default: true
-      auto_reconnect_delay_min:
-        description: 'Minimum reconnect delay in seconds'
-        required: false
-        default: '5'
-      auto_reconnect_delay_max:
-        description: 'Maximum reconnect delay in seconds'
-        required: false
-        default: '10'
-
-      # === Auto-Register/Login Settings ===
-      auto_register_enabled:
-        description: 'Enable auto-registration on cracked servers'
-        required: false
-        type: boolean
-        default: true
-      auto_login_enabled:
-        description: 'Enable auto-login on cracked servers'
-        required: false
-        type: boolean
-        default: true
-      register_password:
-        description: 'Password for auto-register and auto-login'
-        required: false
-        default: 'afkbot123'
-      register_command:
-        description: 'Register command format (use %password% for password)'
-        required: false
-        default: '/register %password% %password%'
-      login_command:
-        description: 'Login command format (use %password% for password)'
-        required: false
-        default: '/login %password%'
-      register_timeout:
-        description: 'Register command timeout in milliseconds'
-        required: false
-        default: '5000'
-      login_timeout:
-        description: 'Login command timeout in milliseconds'
-        required: false
-        default: '5000'
-
-      # === Client Settings ===
-      client_locale:
-        description: 'Client locale (e.g., en_us)'
-        required: false
-        default: 'en_us'
-      render_distance:
-        description: 'Client render distance (2-32)'
-        required: false
-        default: '2'
-      chat_colors_enabled:
-        description: 'Enable chat colors'
-        required: false
-        type: boolean
-        default: true
-      chat_enabled:
-        description: 'Enable chat messages'
-        required: false
-        type: boolean
-        default: true
-      listed:
-        description: 'List bot in server player list'
-        required: false
-        type: boolean
-        default: true
-
-      # === Plugin Settings ===
-      auto_jump_enabled:
-        description: 'Enable auto-jump plugin'
-        required: false
-        type: boolean
-        default: true
-      auto_eat_enabled:
-        description: 'Enable auto-eat plugin'
-        required: false
-        type: boolean
-        default: true
-      auto_eat_hunger_threshold:
-        description: 'Hunger threshold for auto-eat (0-20)'
-        required: false
-        default: '18'
-      auto_armor_enabled:
-        description: 'Enable auto-armor equip plugin'
-        required: false
-        type: boolean
-        default: true
-      auto_respawn_enabled:
-        description: 'Enable auto-respawn on death'
-        required: false
-        type: boolean
-        default: true
-
-      # === Advanced Settings ===
-      max_tick_rate:
-        description: 'Maximum tick rate (default: 20)'
-        required: false
-        default: '20'
-      attack_cooldown:
-        description: 'Attack cooldown in ticks'
-        required: false
-        default: '0'
-      follow_path_enabled:
-        description: 'Enable path following'
-        required: false
-        type: boolean
-        default: false
-
-      # === Web UI & Tunneling ===
-      enable_web_ui:
-        description: 'Enable SoulFire web UI (requires ngrok for remote access)'
-        required: false
-        type: boolean
-        default: true
-      web_ui_port:
-        description: 'Web UI local port'
-        required: false
-        default: '8080'
-      enable_ngrok:
-        description: 'Enable ngrok tunnel to access web UI remotely'
-        required: false
-        type: boolean
-        default: false
-      ngrok_region:
-        description: 'Ngrok server region'
-        required: false
-        type: choice
-        options:
-          - 'us'
-          - 'eu'
-          - 'ap'
-          - 'au'
-          - 'sa'
-          - 'jp'
-          - 'in'
-        default: 'us'
-
-      # === Email Notifications ===
-      email_enabled:
-        description: 'Enable email notifications (via sendmail)'
-        required: false
-        type: boolean
-        default: false
-      email_to:
-        description: 'Recipient email address'
-        required: false
-        default: ''
-      smtp_server:
-        description: 'SMTP server address (leave empty for system sendmail)'
-        required: false
-        default: ''
-      smtp_port:
-        description: 'SMTP server port'
-        required: false
-        default: '587'
-      smtp_user:
-        description: 'SMTP username (for authenticated SMTP)'
-        required: false
-        default: ''
-      smtp_password:
-        description: 'SMTP password (use secrets for security!)'
-        required: false
-        default: ''
-
-      # === Root Email ===
-      root_email:
-        description: 'Email for SoulFire root user'
-        required: false
-        default: 'root@localhost'
-
-      # === Duration ===
+        default: 'ahsmpw.falixsrv.me'
       duration:
         description: 'Run duration in minutes'
         required: false
@@ -270,360 +22,92 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - name: Setup Java 25
-        uses: actions/setup-java@v4
-        with:
-          java-version: '25'
-          distribution: 'temurin'
-
       - name: Download SoulFire Dedicated JAR
         run: |
           # Get the latest release version from GitHub API
-          VERSION=$(curl -sL https://api.github.com/repos/AlexProgrammerDE/SoulFire/releases/latest | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
+          VERSION=$(curl -sL https://api.github.com/repos/AlexProgrammerDE/SoulFire/releases/latest | grep -o '"tag_name": *"v\([^"]*\)"' | cut -d'"' -f4)
           echo "Latest SoulFire version: $VERSION"
-
+          
           # Construct download URL for SoulFireDedicated.jar
-          DOWNLOAD_URL="https://github.com/AlexProgrammerDE/SoulFire/releases/download/${VERSION}/SoulFireDedicated-${VERSION}.jar"
+          DOWNLOAD_URL="https://github.com/AlexProgrammerDE/SoulFire/releases/download/v${VERSION}/SoulFireDedicated.jar"
           echo "Downloading from: $DOWNLOAD_URL"
-
-          # Download with redirect following and fail on error
-          curl -L -f -o SoulFireDedicated.jar "$DOWNLOAD_URL"
-
-          # Verify the file was downloaded and is a valid JAR
-          if [ ! -f SoulFireDedicated.jar ]; then
-            echo "ERROR: Failed to download SoulFireDedicated.jar"
-            exit 1
-          fi
-
-          # Check file size is reasonable (at least 1MB)
-          FILE_SIZE=$(stat -f%z SoulFireDedicated.jar 2>/dev/null || stat -c%s SoulFireDedicated.jar 2>/dev/null)
-          if [ "$FILE_SIZE" -lt 1048576 ]; then
-            echo "ERROR: Downloaded file is too small ($FILE_SIZE bytes), likely not a valid JAR"
-            exit 1
-          fi
-
-          # Verify it's a valid ZIP/JAR file
-          if ! unzip -t SoulFireDedicated.jar >/dev/null 2>&1; then
-            echo "ERROR: Downloaded file is not a valid JAR archive"
-            exit 1
-          fi
-
-          echo "JAR verification successful"
-          ls -lh SoulFireDedicated.jar
-
-      - name: Set SoulFire root email
-        run: |
-          java -jar SoulFireDedicated.jar set-email "${{ inputs.root_email }}"
-          echo "SoulFire root email set to: ${{ inputs.root_email }}"
-
-      - name: Install ngrok
-        if: ${{ inputs.enable_ngrok }}
-        run: |
-          # Download and install ngrok
-          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install ngrok
-
-          # Authenticate with ngrok token if provided
-          if [ -n "${{ secrets.NGROK_AUTH_TOKEN }}" ]; then
-            ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-            echo "Ngrok authenticated successfully"
+          
+          curl -L -o SoulFireDedicated.jar "$DOWNLOAD_URL"
+          
+          # Verify the file was downloaded
+          if [ -f SoulFireDedicated.jar ]; then
+            ls -lh SoulFireDedicated.jar
           else
-            echo "Warning: No NGROK_AUTH_TOKEN secret found. Using ngrok free tier (limited features)"
+            echo "Failed to download SoulFireDedicated.jar"
+            exit 1
           fi
 
-      - name: Start ngrok tunnel
-        if: ${{ inputs.enable_ngrok }}
+      - name: Create SoulFire config file
         run: |
-          # Start ngrok in background
-          ngrok http ${{ inputs.web_ui_port }} --region=${{ inputs.ngrok_region }} --log=stdout > ngrok.log &
-          NGROK_PID=$!
-          echo "NGROK_PID=$NGROK_PID" >> $GITHUB_ENV
-
-          # Wait for ngrok to start and get the public URL
-          echo "Waiting for ngrok tunnel to establish..."
-          sleep 5
-
-          # Extract the public URL from ngrok API
-          for i in {1..30}; do
-            NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o '"public_url":"[^"]*"' | cut -d'"' -f4 | head -n1)
-            if [ -n "$NGROK_URL" ]; then
-              echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
-              echo "Ngrok tunnel established: $NGROK_URL"
-              echo "Web UI accessible at: $NGROK_URL"
-              break
-            fi
-            sleep 2
-          done
-
-          if [ -z "$NGROK_URL" ]; then
-            echo "Warning: Failed to get ngrok URL, continuing without it"
-            cat ngrok.log
-          fi
-
-      - name: Build SoulFire command
-        id: build_command
-        run: |
-          # Start building the command
-          CMD="java -jar SoulFireDedicated.jar"
-
-          # Server connection
-          CMD="$CMD --bot-address ${{ inputs.server_address }}:${{ inputs.server_port }}"
-          if [ -n "${{ inputs.protocol_version }}" ]; then
-            CMD="$CMD --bot-protocol-version ${{ inputs.protocol_version }}"
-          fi
-
-          # Bot settings
-          CMD="$CMD --bot-amount ${{ inputs.bot_amount }}"
-          if [ "${{ inputs.account_type }}" = "OFFLINE" ]; then
-            if [ -n "${{ inputs.username_format }}" ]; then
-              CMD="$CMD --account-name-format '${{ inputs.username_format }}'"
-            else
-              CMD="$CMD --account-name-format '${{ inputs.username }}'"
-            fi
-          fi
-          CMD="$CMD --account-type ${{ inputs.account_type }}"
-
-          # Join delay
-          CMD="$CMD --bot-join-delay-min ${{ inputs.join_delay_min }}"
-          CMD="$CMD --bot-join-delay-max ${{ inputs.join_delay_max }}"
-
-          # Anti-AFK
-          CMD="$CMD --anti-afk-enabled ${{ inputs.anti_afk_enabled }}"
-          CMD="$CMD --anti-afk-delay-min ${{ inputs.anti_afk_delay_min }}"
-          CMD="$CMD --anti-afk-delay-max ${{ inputs.anti_afk_delay_max }}"
-          CMD="$CMD --anti-afk-distance-min ${{ inputs.anti_afk_distance_min }}"
-          CMD="$CMD --anti-afk-distance-max ${{ inputs.anti_afk_distance_max }}"
-
-          # Auto-reconnect
-          CMD="$CMD --auto-reconnect-enabled ${{ inputs.auto_reconnect_enabled }}"
-          CMD="$CMD --auto-reconnect-delay-min ${{ inputs.auto_reconnect_delay_min }}"
-          CMD="$CMD --auto-reconnect-delay-max ${{ inputs.auto_reconnect_delay_max }}"
-
-          # Auto-register/login
-          if [ "${{ inputs.auto_register_enabled }}" = "true" ] || [ "${{ inputs.auto_login_enabled }}" = "true" ]; then
-            CMD="$CMD --auto-register-enabled ${{ inputs.auto_register_enabled }}"
-            CMD="$CMD --auto-register-register-command '${{ inputs.register_command }}'"
-            CMD="$CMD --auto-register-login-command '${{ inputs.login_command }}'"
-            CMD="$CMD --auto-register-password-format '${{ inputs.register_password }}'"
-            CMD="$CMD --auto-register-register-timeout ${{ inputs.register_timeout }}"
-            CMD="$CMD --auto-register-login-timeout ${{ inputs.login_timeout }}"
-          fi
-
-          # Client settings
-          CMD="$CMD --client-settings-enabled true"
-          CMD="$CMD --client-settings-client-locale ${{ inputs.client_locale }}"
-          CMD="$CMD --client-settings-render-distance '${{ inputs.render_distance }}'"
-          CMD="$CMD --client-settings-chat-colors-enabled ${{ inputs.chat_colors_enabled }}"
-          CMD="$CMD --client-settings-chat-enabled ${{ inputs.chat_enabled }}"
-          CMD="$CMD --client-settings-listed ${{ inputs.listed }}"
-
-          # Plugins
-          CMD="$CMD --auto-jump-enabled ${{ inputs.auto_jump_enabled }}"
-          CMD="$CMD --auto-eat-enabled ${{ inputs.auto_eat_enabled }}"
-          CMD="$CMD --auto-eat-hunger-threshold ${{ inputs.auto_eat_hunger_threshold }}"
-          CMD="$CMD --auto-armor-enabled ${{ inputs.auto_armor_enabled }}"
-          CMD="$CMD --auto-respawn-enabled ${{ inputs.auto_respawn_enabled }}"
-
-          # Advanced settings
-          CMD="$CMD --max-tick-rate ${{ inputs.max_tick_rate }}"
-          CMD="$CMD --attack-cooldown ${{ inputs.attack_cooldown }}"
-          CMD="$CMD --follow-path-enabled ${{ inputs.follow_path_enabled }}"
-
-          # Web UI
-          if [ "${{ inputs.enable_web_ui }}" = "true" ]; then
-            CMD="$CMD --web-ui-enabled true"
-            CMD="$CMD --web-ui-port ${{ inputs.web_ui_port }}"
-          else
-            CMD="$CMD --web-ui-enabled false"
-          fi
-
-          # Output the command
-          echo "COMMAND=$CMD" >> $GITHUB_OUTPUT
-          echo "Built command:"
-          echo "$CMD"
-
-      - name: Display configuration summary
-        run: |
-          echo "=========================================="
-          echo "  SoulFire AFK Bot Configuration"
-          echo "=========================================="
-          echo ""
-          echo "Server: ${{ inputs.server_address }}:${{ inputs.server_port }}"
-          echo "Bot Username: ${{ inputs.username }}"
-          echo "Bot Amount: ${{ inputs.bot_amount }}"
-          echo "Account Type: ${{ inputs.account_type }}"
-          echo ""
-          echo "Anti-AFK: ${{ inputs.anti_afk_enabled }}"
-          echo "Auto-Reconnect: ${{ inputs.auto_reconnect_enabled }}"
-          echo "Auto-Register: ${{ inputs.auto_register_enabled }}"
-          echo "Auto-Login: ${{ inputs.auto_login_enabled }}"
-          echo ""
-          echo "Auto-Jump: ${{ inputs.auto_jump_enabled }}"
-          echo "Auto-Eat: ${{ inputs.auto_eat_enabled }}"
-          echo "Auto-Armor: ${{ inputs.auto_armor_enabled }}"
-          echo "Auto-Respawn: ${{ inputs.auto_respawn_enabled }}"
-          echo ""
-          echo "Duration: ${{ inputs.duration }} minutes"
-          echo ""
-          if [ "${{ inputs.enable_ngrok }}" = "true" ]; then
-            echo "=========================================="
-            echo "  Web UI Access"
-            echo "=========================================="
-            if [ -n "$NGROK_URL" ]; then
-              echo "Web UI URL: $NGROK_URL"
-              echo ""
-              echo "⚠️  WARNING: Anyone with this URL can control the bot!"
-              echo "   Keep this URL private and monitor access."
-            else
-              echo "Ngrok URL not available - check ngrok logs"
-            fi
-            echo ""
-          fi
-          echo "=========================================="
+          cat > config.json << 'EOF'
+          {
+            "server": {
+              "address": "${{ inputs.server }}",
+              "port": 25565
+            },
+            "auth": {
+              "onlineMode": false,
+              "username": "${{ inputs.username }}",
+              "autoRegister": true,
+              "autoLogin": true
+            },
+            "bot": {
+              "antiAFK": true,
+              "autoReconnect": true,
+              "reconnectDelay": 5
+            },
+            "ui": {
+              "headless": true
+            }
+          }
+          EOF
+          cat config.json
 
       - name: Run SoulFire bot
         run: |
-          # Calculate timeout in seconds
+          # Calculate timeout in seconds (duration from input, default 340 minutes)
           DURATION=${{ inputs.duration }}
           TIMEOUT_SECONDS=$((DURATION * 60))
           
           echo "Running bot for $DURATION minutes ($TIMEOUT_SECONDS seconds)"
-          echo ""
           
           # Run the bot with timeout
-          eval "${{ steps.build_command.outputs.COMMAND }}" &
-          BOT_PID=$!
-          
-          # Set up trap to kill bot on timeout or interrupt
-          trap "kill $BOT_PID 2>/dev/null || true" EXIT TERM INT
-          
-          # Wait for bot or timeout
-          timeout --signal=TERM $TIMEOUT_SECONDS wait $BOT_PID || EXIT_CODE=$?
+          # Using timeout command to kill after specified duration
+          timeout --signal=TERM $TIMEOUT_SECONDS java -jar SoulFireDedicated.jar --config config.json || EXIT_CODE=$?
           
           # Check exit code - timeout returns 124, which is expected
           if [ "$EXIT_CODE" = "124" ]; then
-            echo ""
             echo "Bot ran for $DURATION minutes, triggering next workflow run..."
           else
-            echo ""
             echo "Bot exited with code: $EXIT_CODE"
           fi
-
-      - name: Stop ngrok
-        if: always() && inputs.enable_ngrok
-        run: |
-          if [ -n "$NGROK_PID" ]; then
-            kill $NGROK_PID 2>/dev/null || true
-            echo "Ngrok stopped"
-          fi
-
-      - name: Send email notification
-        if: always() && inputs.email_enabled
-        run: |
-          SUBJECT="[SoulFire] Bot run ${{ job.status }}"
-          
-          if [ "${{ job.status }}" = "success" ]; then
-            BODY="The SoulFire AFK bot run completed successfully after ${{ inputs.duration }} minutes."
-          else
-            BODY="The SoulFire AFK bot run failed with status: ${{ job.status }}"
-          fi
-          
-          if [ -n "$NGROK_URL" ]; then
-            BODY="$BODY
-
-Web UI was available at: $NGROK_URL"
-          fi
-          
-          if [ -n "${{ inputs.smtp_server }}" ]; then
-            # Use external SMTP server
-            echo -e "Subject: $SUBJECT\n\n$BODY" | sendmail -S "${{ inputs.smtp_server }}:${{ inputs.smtp_port }}" -au "${{ inputs.smtp_user }}" -ap "${{ inputs.smtp_password }}" "${{ inputs.email_to }}"
-          else
-            # Use system sendmail
-            echo -e "Subject: $SUBJECT\n\n$BODY" | sendmail -t "${{ inputs.email_to }}"
-          fi
-          
-          echo "Email notification sent to ${{ inputs.email_to }}"
 
       - name: Trigger next workflow run
         if: success()
         run: |
           # Only trigger if we have a GitHub token
-          if [ -n "${{ secrets.GITHUBTOKEN }}" ]; then
+          if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
             # Get current workflow run ID
             RUN_ID=${{ github.run_id }}
             REPO=${{ github.repository }}
             
             echo "Triggering new workflow run for repository: $REPO"
             
-            # Build inputs JSON with all current inputs
-            INPUTS_JSON=$(cat <<EOF
-{
-  "server_address": "${{ inputs.server_address }}",
-  "server_port": "${{ inputs.server_port }}",
-  "protocol_version": "${{ inputs.protocol_version }}",
-  "bot_amount": "${{ inputs.bot_amount }}",
-  "username": "${{ inputs.username }}",
-  "username_format": "${{ inputs.username_format }}",
-  "account_type": "${{ inputs.account_type }}",
-  "microsoft_email": "${{ inputs.microsoft_email }}",
-  "microsoft_password": "${{ inputs.microsoft_password }}",
-  "join_delay_min": "${{ inputs.join_delay_min }}",
-  "join_delay_max": "${{ inputs.join_delay_max }}",
-  "anti_afk_enabled": "${{ inputs.anti_afk_enabled }}",
-  "anti_afk_delay_min": "${{ inputs.anti_afk_delay_min }}",
-  "anti_afk_delay_max": "${{ inputs.anti_afk_delay_max }}",
-  "anti_afk_distance_min": "${{ inputs.anti_afk_distance_min }}",
-  "anti_afk_distance_max": "${{ inputs.anti_afk_distance_max }}",
-  "auto_reconnect_enabled": "${{ inputs.auto_reconnect_enabled }}",
-  "auto_reconnect_delay_min": "${{ inputs.auto_reconnect_delay_min }}",
-  "auto_reconnect_delay_max": "${{ inputs.auto_reconnect_delay_max }}",
-  "auto_register_enabled": "${{ inputs.auto_register_enabled }}",
-  "auto_login_enabled": "${{ inputs.auto_login_enabled }}",
-  "register_password": "${{ inputs.register_password }}",
-  "register_command": "${{ inputs.register_command }}",
-  "login_command": "${{ inputs.login_command }}",
-  "register_timeout": "${{ inputs.register_timeout }}",
-  "login_timeout": "${{ inputs.login_timeout }}",
-  "client_locale": "${{ inputs.client_locale }}",
-  "render_distance": "${{ inputs.render_distance }}",
-  "chat_colors_enabled": "${{ inputs.chat_colors_enabled }}",
-  "chat_enabled": "${{ inputs.chat_enabled }}",
-  "listed": "${{ inputs.listed }}",
-  "auto_jump_enabled": "${{ inputs.auto_jump_enabled }}",
-  "auto_eat_enabled": "${{ inputs.auto_eat_enabled }}",
-  "auto_eat_hunger_threshold": "${{ inputs.auto_eat_hunger_threshold }}",
-  "auto_armor_enabled": "${{ inputs.auto_armor_enabled }}",
-  "auto_respawn_enabled": "${{ inputs.auto_respawn_enabled }}",
-  "max_tick_rate": "${{ inputs.max_tick_rate }}",
-  "attack_cooldown": "${{ inputs.attack_cooldown }}",
-  "follow_path_enabled": "${{ inputs.follow_path_enabled }}",
-  "enable_web_ui": "${{ inputs.enable_web_ui }}",
-  "web_ui_port": "${{ inputs.web_ui_port }}",
-  "enable_ngrok": "${{ inputs.enable_ngrok }}",
-  "ngrok_region": "${{ inputs.ngrok_region }}",
-  "email_enabled": "${{ inputs.email_enabled }}",
-  "email_to": "${{ inputs.email_to }}",
-  "smtp_server": "${{ inputs.smtp_server }}",
-  "smtp_port": "${{ inputs.smtp_port }}",
-  "smtp_user": "${{ inputs.smtp_user }}",
-  "smtp_password": "${{ inputs.smtp_password }}",
-  "root_email": "${{ inputs.root_email }}",
-  "duration": "${{ inputs.duration }}"
-}
-EOF
-)
-            
             # Use GitHub API to trigger a new workflow run
             curl -X POST \
               -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${{ secrets.GITHUBTOKEN }}" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/repos/$REPO/actions/workflows/soulfire-afk.yml/dispatches" \
-              -d "{\"ref\": \"${{ github.ref }}\", \"inputs\": $INPUTS_JSON}"
+              -d '{"ref": "${{ github.ref }}", "inputs": {"username": "${{ inputs.username }}", "server": "${{ inputs.server }}", "duration": "${{ inputs.duration }}"}}'
             
             echo "Next workflow triggered successfully"
           else
-            echo "No GITHUBTOKEN available, skipping workflow trigger"
+            echo "No GITHUB_TOKEN available, skipping workflow trigger"
             echo "To enable automatic looping, add a GitHub token with repo scope"
           fi
