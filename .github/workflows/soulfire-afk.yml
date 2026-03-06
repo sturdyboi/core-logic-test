@@ -1,0 +1,113 @@
+name: SoulFire AFK Bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: 'Bot username (for cracked servers)'
+        required: false
+        default: 'AFKBot'
+      server:
+        description: 'Minecraft server address'
+        required: false
+        default: 'ahsmpw.falixsrv.me'
+      duration:
+        description: 'Run duration in minutes'
+        required: false
+        default: '340'
+
+jobs:
+  afk-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Download SoulFire Dedicated JAR
+        run: |
+          # Get the latest release version from GitHub API
+          VERSION=$(curl -sL https://api.github.com/repos/AlexProgrammerDE/SoulFire/releases/latest | grep -o '"tag_name": *"v\([^"]*\)"' | cut -d'"' -f4)
+          echo "Latest SoulFire version: $VERSION"
+          
+          # Construct download URL for SoulFireDedicated.jar
+          DOWNLOAD_URL="https://github.com/AlexProgrammerDE/SoulFire/releases/download/v${VERSION}/SoulFireDedicated.jar"
+          echo "Downloading from: $DOWNLOAD_URL"
+          
+          curl -L -o SoulFireDedicated.jar "$DOWNLOAD_URL"
+          
+          # Verify the file was downloaded
+          if [ -f SoulFireDedicated.jar ]; then
+            ls -lh SoulFireDedicated.jar
+          else
+            echo "Failed to download SoulFireDedicated.jar"
+            exit 1
+          fi
+
+      - name: Create SoulFire config file
+        run: |
+          cat > config.json << 'EOF'
+          {
+            "server": {
+              "address": "${{ inputs.server }}",
+              "port": 25565
+            },
+            "auth": {
+              "onlineMode": false,
+              "username": "${{ inputs.username }}",
+              "autoRegister": true,
+              "autoLogin": true
+            },
+            "bot": {
+              "antiAFK": true,
+              "autoReconnect": true,
+              "reconnectDelay": 5
+            },
+            "ui": {
+              "headless": true
+            }
+          }
+          EOF
+          cat config.json
+
+      - name: Run SoulFire bot
+        run: |
+          # Calculate timeout in seconds (duration from input, default 340 minutes)
+          DURATION=${{ inputs.duration }}
+          TIMEOUT_SECONDS=$((DURATION * 60))
+          
+          echo "Running bot for $DURATION minutes ($TIMEOUT_SECONDS seconds)"
+          
+          # Run the bot with timeout
+          # Using timeout command to kill after specified duration
+          timeout --signal=TERM $TIMEOUT_SECONDS java -jar SoulFireDedicated.jar --config config.json || EXIT_CODE=$?
+          
+          # Check exit code - timeout returns 124, which is expected
+          if [ "$EXIT_CODE" = "124" ]; then
+            echo "Bot ran for $DURATION minutes, triggering next workflow run..."
+          else
+            echo "Bot exited with code: $EXIT_CODE"
+          fi
+
+      - name: Trigger next workflow run
+        if: success()
+        run: |
+          # Only trigger if we have a GitHub token
+          if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+            # Get current workflow run ID
+            RUN_ID=${{ github.run_id }}
+            REPO=${{ github.repository }}
+            
+            echo "Triggering new workflow run for repository: $REPO"
+            
+            # Use GitHub API to trigger a new workflow run
+            curl -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/$REPO/actions/workflows/soulfire-afk.yml/dispatches" \
+              -d '{"ref": "${{ github.ref }}", "inputs": {"username": "${{ inputs.username }}", "server": "${{ inputs.server }}", "duration": "${{ inputs.duration }}"}}'
+            
+            echo "Next workflow triggered successfully"
+          else
+            echo "No GITHUB_TOKEN available, skipping workflow trigger"
+            echo "To enable automatic looping, add a GitHub token with repo scope"
+          fi
