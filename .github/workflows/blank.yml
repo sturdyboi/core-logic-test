@@ -70,27 +70,30 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          # Use a direct link to a stable release version instead of 'latest'
-          # This avoids the redirect issues causing your 'ASCII text' error
-          curl -L -o SoulFireDedicated.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/v1.0.0/SoulFireDedicated.jar
+          # Use the specific direct download URL for 2.6.1
+          URL="https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar"
           
-          # Debug: Verify the file is an actual JAR
-          echo "Checking file type..."
+          echo "Downloading from: $URL"
+          curl -L -o SoulFireDedicated.jar "$URL"
+          
+          # Debug: Verify the file is an actual JAR (Zip archive)
+          echo "Verifying file..."
           file SoulFireDedicated.jar
           
-          # Only proceed if the file is actually a JAR (Zip archive)
           if file SoulFireDedicated.jar | grep -q "Zip archive"; then
             echo "✅ File verified as JAR. Starting bot..."
             java -Xmx1G -Dterminal.jline=false -jar SoulFireDedicated.jar --config ./.soulfire &
           else
             echo "❌ ERROR: Downloaded file is NOT a valid JAR!"
-            cat SoulFireDedicated.jar # This will show you the error message inside the text file
+            # This will show you the error if it failed again
+            cat SoulFireDedicated.jar 
             exit 1
           fi
           
           echo "🚀 Bot is heading to ahsmpw.falixsrv.me:21987"
           sleep 350m
           
+          # Trigger next cycle
           curl -L -X POST -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/dispatches \
