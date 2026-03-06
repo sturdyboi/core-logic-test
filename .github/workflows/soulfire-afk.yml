@@ -19,6 +19,11 @@ on:
         description: 'Run duration in minutes'
         required: false
         default: '340'
+      enable_tunnel:
+        description: 'Enable LocalTunnel to expose SoulFire web UI'
+        required: false
+        default: 'true'
+        type: boolean
 
 jobs:
   afk-bot:
@@ -85,7 +90,11 @@ jobs:
               "reconnectDelay": 5
             },
             "ui": {
-              "headless": true
+              "headless": false,
+              "web": {
+                "port": 38765,
+                "host": "0.0.0.0"
+              }
             }
           }
           EOF
@@ -108,6 +117,13 @@ jobs:
           EOF
           cat plugins/AutoAuth/config.json
 
+      - name: Setup LocalTunnel
+        if: ${{ inputs.enable_tunnel == 'true' }}
+        run: |
+          echo "Installing LocalTunnel via npm..."
+          npm install -g localtunnel
+          echo "LocalTunnel installed successfully"
+
       - name: Run SoulFire bot
         run: |
           # Calculate timeout in seconds (duration from input, default 340 minutes)
@@ -115,6 +131,32 @@ jobs:
           TIMEOUT_SECONDS=$((DURATION * 60))
 
           echo "Running bot for $DURATION minutes ($TIMEOUT_SECONDS seconds)"
+
+          # Start LocalTunnel if enabled
+          if [ "${{ inputs.enable_tunnel }}" = "true" ]; then
+            echo "Starting LocalTunnel for SoulFire web UI..."
+            lt --port 38765 > tunnel.log 2>&1 &
+            TUNNEL_PID=$!
+            echo "LocalTunnel started with PID: $TUNNEL_PID"
+
+            # Wait for LocalTunnel to initialize and capture the URL
+            sleep 3
+            TUNNEL_URL=$(grep -o 'https://[^ ]*' tunnel.log | head -n 1)
+
+            if [ -n "$TUNNEL_URL" ]; then
+              echo "=========================================="
+              echo "🌐 SoulFire Web UI is now accessible at:"
+              echo "$TUNNEL_URL"
+              echo "=========================================="
+              echo "TUNNEL_URL=$TUNNEL_URL" >> $GITHUB_ENV
+            else
+              echo "Warning: Could not extract tunnel URL from output"
+              cat tunnel.log
+            fi
+
+            # Set up cleanup on exit
+            trap "kill $TUNNEL_PID 2>/dev/null || true" EXIT
+          fi
 
           # Run the bot with timeout
           # Using timeout command to kill after specified duration
@@ -144,7 +186,7 @@ jobs:
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/repos/$REPO/actions/workflows/soulfire-afk.yml/dispatches" \
-              -d '{"ref": "${{ github.ref }}", "inputs": {"username": "${{ inputs.username }}", "server": "${{ inputs.server }}", "password": "${{ inputs.password }}", "duration": "${{ inputs.duration }}"}}'
+              -d '{"ref": "${{ github.ref }}", "inputs": {"username": "${{ inputs.username }}", "server": "${{ inputs.server }}", "password": "${{ inputs.password }}", "duration": "${{ inputs.duration }}", "enable_tunnel": "${{ inputs.enable_tunnel }}"}}'
 
             echo "Next workflow triggered successfully"
           else
