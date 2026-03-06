@@ -76,7 +76,16 @@ jobs:
           # Verify file type
           if file SoulFireDedicated.jar | grep -q "Zip archive"; then
             echo "✅ File verified as JAR. Starting bot..."
+            
+            # Start the bot and set the admin email automatically
+            # We use a short sleep to ensure the RPC server is up before sending the command
             java -Xmx1G -Dterminal.jline=false -jar SoulFireDedicated.jar --config ./.soulfire &
+            sleep 15
+            
+            echo "🔧 Configuring admin email..."
+            # Adjust the RPC command to set the email
+            curl -X POST http://127.0.0.1:38765/api/v1/rpc -d '{"method":"set-email","params":["bot.admin@example.com"]}'
+            
           else
             echo "❌ ERROR: Downloaded file is NOT a valid JAR!"
             exit 1
