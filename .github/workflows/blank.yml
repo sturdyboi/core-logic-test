@@ -22,17 +22,9 @@ jobs:
       - name: Create SoulFire Local Environment
         run: |
           mkdir -p .soulfire
-          
           cat << 'EOF' > .soulfire/accounts.json
-          [
-            {
-              "username": "SoulBot_247",
-              "type": "offline",
-              "stay_online": true
-            }
-          ]
+          [{"username": "SoulBot_247", "type": "offline", "stay_online": true}]
           EOF
-
           PASSWORD="YourPassword123"
           if [ ! -f "registered.txt" ]; then
             REG_CMD="/register $PASSWORD $PASSWORD"
@@ -45,28 +37,21 @@ jobs:
           else
             REG_CMD=""
           fi
-
           cat << EOF > .soulfire/settings.json
           {
-            "server_address": "ahsmpw.falixsrv.me",
-            "server_port": 21987,
-            "anti_afk": true,
-            "auto_reconnect": true,
-            "reconnect_delay": 5000,
+            "server_address": "ahsmpw.falixsrv.me", "server_port": 21987,
+            "anti_afk": true, "auto_reconnect": true, "reconnect_delay": 5000,
             "auto_respawn": true,
-            "auto_register": {
-              "enabled": true,
-              "password": "$PASSWORD",
-              "register_command": "$REG_CMD",
-              "login_command": "/login %password%"
-            }
+            "auto_register": {"enabled": true, "password": "$PASSWORD", "register_command": "$REG_CMD", "login_command": "/login %password%"}
           }
           EOF
 
       - name: Start SoulFire Dedicated
         run: |
           curl -L -o SoulFireDedicated.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
+          # Added -Djava.awt.headless=true to bypass graphics initialization
           java -Xmx1G \
+            -Djava.awt.headless=true \
             -XX:+EnableDynamicAgentLoading -XX:+UnlockExperimentalVMOptions -XX:+UseZGC \
             -XX:+UseCompactObjectHeaders -XX:+AlwaysActAsServerClassMachine -XX:+UseNUMA \
             -XX:+UseFastUnorderedTimeStamps -XX:+UseVectorCmov -XX:+UseCriticalJavaThreadPriority \
@@ -79,19 +64,18 @@ jobs:
           count=0
           while ! grep -q "RPC Server started" bot.log; do
             if [ $count -ge 30 ]; then
-              echo "Error: RPC server failed to start within 60 seconds."
-              cat bot.log
+              echo "❌ ERROR: RPC server failed to start within 60 seconds."
+              echo "--- LAST 20 LINES OF BOT LOG ---"
+              tail -n 20 bot.log
               exit 1
             fi
             sleep 2
             ((count++))
           done
-
           echo "🔧 Configuring admin email..."
           curl -X POST http://127.0.0.1:38765/api/v1/rpc \
             -H "Content-Type: application/json" \
             -d '{"method":"set-email","params":["bot.admin@example.com"]}'
-          
           echo "🚀 Bot is active and configured!"
 
       - name: Keep Alive and Loop
