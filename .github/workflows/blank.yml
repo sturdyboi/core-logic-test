@@ -1,8 +1,8 @@
-name: Bot
+name: SoulFire-Bot-V3
 on: [workflow_dispatch]
 
 jobs:
-  run:
+  run-bot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -11,13 +11,30 @@ jobs:
         with:
           java-version: '25'
           distribution: 'temurin'
-      - name: Start
+
+      - name: Start and Configure Bot
         run: |
           mkdir -p .soulfire
           echo '{"server_address": "ahsmpw.falixsrv.me", "server_port": 21987}' > .soulfire/settings.json
           
           curl -L -o bot.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
           
-          # This is the exact same way you run it on your PC.
-          # No curl, no RPC, no background (&).
-          java -Xmx1G -Djava.awt.headless=true -jar bot.jar --config ./.soulfire
+          # Start the bot in the background
+          java -Xmx1G -Djava.awt.headless=true -jar bot.jar --config ./.soulfire > bot.log 2>&1 &
+          
+          # Wait for RPC to initialize
+          echo "Waiting for RPC server to initialize..."
+          until grep -q "RPC Server started" bot.log 2>/dev/null; do
+            sleep 2
+          done
+          
+          # Apply the configuration
+          echo "Configuring admin email..."
+          curl -X POST http://127.0.0.1:38765/api/admin/set-email \
+            -H "Content-Type: application/json" \
+            -d '{"email":"your-email@example.com"}'
+            
+          echo "Configuration sent."
+          
+          # Keep the job alive
+          sleep 350m
