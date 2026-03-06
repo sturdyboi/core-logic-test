@@ -31,44 +31,40 @@ jobs:
     timeout-minutes: 360
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Java 25
         uses: actions/setup-java@v4
         with:
           java-version: '25'
           distribution: 'temurin'
 
+      - name: Configure git
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
       - name: Download SoulFire Dedicated JAR
         run: |
-          # Get the latest release version from GitHub API
           VERSION=$(curl -sL https://api.github.com/repos/AlexProgrammerDE/SoulFire/releases/latest | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
           echo "Latest SoulFire version: $VERSION"
-
-          # Construct download URL for SoulFireDedicated.jar (note: includes version in filename)
           DOWNLOAD_URL="https://github.com/AlexProgrammerDE/SoulFire/releases/download/${VERSION}/SoulFireDedicated-${VERSION}.jar"
           echo "Downloading from: $DOWNLOAD_URL"
-
-          # Download with redirect following and fail on error
           curl -L -f -o SoulFireDedicated.jar "$DOWNLOAD_URL"
-
-          # Verify the file was downloaded and is a valid JAR
           if [ ! -f SoulFireDedicated.jar ]; then
             echo "ERROR: Failed to download SoulFireDedicated.jar"
             exit 1
           fi
-
-          # Check file size is reasonable (at least 1MB)
           FILE_SIZE=$(stat -f%z SoulFireDedicated.jar 2>/dev/null || stat -c%s SoulFireDedicated.jar 2>/dev/null)
           if [ "$FILE_SIZE" -lt 1048576 ]; then
             echo "ERROR: Downloaded file is too small ($FILE_SIZE bytes), likely not a valid JAR"
             exit 1
           fi
-
-          # Verify it's a valid ZIP/JAR file (JARs are ZIP files)
           if ! unzip -t SoulFireDedicated.jar >/dev/null 2>&1; then
             echo "ERROR: Downloaded file is not a valid JAR archive"
             exit 1
           fi
-
           echo "JAR verification successful"
           ls -lh SoulFireDedicated.jar
 
@@ -98,7 +94,6 @@ jobs:
             }
           }
           EOF
-          cat config.json
 
       - name: Create SoulFire plugins config for auto-register/login
         run: |
@@ -115,27 +110,19 @@ jobs:
             "loginTimeout": 5000
           }
           EOF
-          cat plugins/AutoAuth/config.json
 
       - name: Run SoulFire bot
         run: |
-          # Calculate timeout in seconds (duration from input, default 340 minutes)
           DURATION=${{ inputs.duration }}
           TIMEOUT_SECONDS=$((DURATION * 60))
-
           echo "Running bot for $DURATION minutes ($TIMEOUT_SECONDS seconds)"
-
-          # Start LocalTunnel if enabled
           if [ "${{ inputs.enable_tunnel }}" = "true" ]; then
             echo "Starting LocalTunnel for SoulFire web UI..."
             npx localtunnel --port 38765 > tunnel.log 2>&1 &
             TUNNEL_PID=$!
             echo "LocalTunnel started with PID: $TUNNEL_PID"
-
-            # Wait for LocalTunnel to initialize and capture the URL
             sleep 5
             TUNNEL_URL=$(grep -oE 'https://[a-z0-9-]+\.loca\.lt' tunnel.log | head -n 1)
-
             if [ -n "$TUNNEL_URL" ]; then
               echo "=========================================="
               echo "🌐 SoulFire Web UI is now accessible at:"
@@ -146,16 +133,9 @@ jobs:
               echo "Warning: Could not extract tunnel URL from output"
               cat tunnel.log
             fi
-
-            # Set up cleanup on exit
             trap "kill $TUNNEL_PID 2>/dev/null || true" EXIT
           fi
-
-          # Run the bot with timeout
-          # Using timeout command to kill after specified duration
           timeout --signal=TERM $TIMEOUT_SECONDS java -jar SoulFireDedicated.jar --config config.json || EXIT_CODE=$?
-
-          # Check exit code - timeout returns 124, which is expected
           if [ "$EXIT_CODE" = "124" ]; then
             echo "Bot ran for $DURATION minutes, triggering next workflow run..."
           else
@@ -165,22 +145,16 @@ jobs:
       - name: Trigger next workflow run
         if: success()
         run: |
-          # Only trigger if we have a GitHub token
           if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
-            # Get current workflow run ID
             RUN_ID=${{ github.run_id }}
             REPO=${{ github.repository }}
-
             echo "Triggering new workflow run for repository: $REPO"
-
-            # Use GitHub API to trigger a new workflow run
             curl -X POST \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/repos/$REPO/actions/workflows/soulfire-afk.yml/dispatches" \
               -d '{"ref": "${{ github.ref }}", "inputs": {"username": "${{ inputs.username }}", "server": "${{ inputs.server }}", "password": "${{ inputs.password }}", "duration": "${{ inputs.duration }}", "enable_tunnel": "${{ inputs.enable_tunnel }}"}}'
-
             echo "Next workflow triggered successfully"
           else
             echo "No GITHUB_TOKEN available, skipping workflow trigger"
