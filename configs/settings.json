@@ -1,6 +1,7 @@
 {
   "server_address": "ahsmpw.falixsrv.me",
   "server_port": 21987,
+  "admin_email": "root@soulfiremc.com",
   "anti_afk": true,
   "auto_reconnect": true,
   "auto_register": {
