@@ -117,12 +117,11 @@ jobs:
           EOF
           cat plugins/AutoAuth/config.json
 
-      - name: Setup LocalTunnel
-        if: ${{ inputs.enable_tunnel == 'true' }}
+      - name: Set SoulFire email
         run: |
-          echo "Installing LocalTunnel via npm..."
-          npm install -g localtunnel
-          echo "LocalTunnel installed successfully"
+          echo "Setting SoulFire root email..."
+          java -jar SoulFireDedicated.jar set-email root@soulfiremc.com
+          echo "Email set successfully"
 
       - name: Run SoulFire bot
         run: |
@@ -135,13 +134,13 @@ jobs:
           # Start LocalTunnel if enabled
           if [ "${{ inputs.enable_tunnel }}" = "true" ]; then
             echo "Starting LocalTunnel for SoulFire web UI..."
-            lt --port 38765 > tunnel.log 2>&1 &
+            npx localtunnel --port 38765 > tunnel.log 2>&1 &
             TUNNEL_PID=$!
             echo "LocalTunnel started with PID: $TUNNEL_PID"
 
             # Wait for LocalTunnel to initialize and capture the URL
-            sleep 3
-            TUNNEL_URL=$(grep -o 'https://[^ ]*' tunnel.log | head -n 1)
+            sleep 5
+            TUNNEL_URL=$(grep -oE 'https://[a-z0-9-]+\.loca\.lt' tunnel.log | head -n 1)
 
             if [ -n "$TUNNEL_URL" ]; then
               echo "=========================================="
