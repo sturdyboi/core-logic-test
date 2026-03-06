@@ -10,8 +10,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Java 25
         uses: actions/setup-java@v4
@@ -26,65 +24,64 @@ jobs:
           [{"username": "SoulBot_247", "type": "offline", "stay_online": true}]
           EOF
           PASSWORD="YourPassword123"
-          if [ ! -f "registered.txt" ]; then
-            REG_CMD="/register $PASSWORD $PASSWORD"
-            echo "registered" > registered.txt
-            git config --global user.email "bot@example.com"
-            git config --global user.name "BotUpdater"
-            git add registered.txt
-            git commit -m "Bot registered [skip ci]" || true
-            git push || true
-          else
-            REG_CMD=""
-          fi
           cat << EOF > .soulfire/settings.json
           {
             "server_address": "ahsmpw.falixsrv.me", "server_port": 21987,
             "anti_afk": true, "auto_reconnect": true, "reconnect_delay": 5000,
             "auto_respawn": true,
-            "auto_register": {"enabled": true, "password": "$PASSWORD", "register_command": "$REG_CMD", "login_command": "/login %password%"}
+            "auto_register": {"enabled": true, "password": "$PASSWORD", "register_command": "/register $PASSWORD $PASSWORD", "login_command": "/login $PASSWORD"}
           }
           EOF
 
-      - name: Start SoulFire Dedicated
+      - name: Start and Configure SoulFire
         run: |
           curl -L -o SoulFireDedicated.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
           
-          # We are grouping all flags directly before the -jar argument
+          # Start the bot in the background and pipe output to bot.log
           java -Xmx1G \
             -Djava.awt.headless=true \
             -Dheadlesmc.no-gui=true \
             -Dsf.flags.v2=true \
+            -Dsf.rpc.port=38765 \
             -XX:+EnableDynamicAgentLoading -XX:+UnlockExperimentalVMOptions -XX:+UseZGC \
             -XX:+UseCompactObjectHeaders -XX:+AlwaysActAsServerClassMachine -XX:+UseNUMA \
             -XX:+UseFastUnorderedTimeStamps -XX:+UseVectorCmov -XX:+UseCriticalJavaThreadPriority \
             -jar SoulFireDedicated.jar --config ./.soulfire > bot.log 2>&1 &
-
-      - name: Wait for RPC and Configure
-        run: |
-          echo "Waiting for RPC server to start..."
-          count=0
-          while ! grep -q "RPC Server started" bot.log; do
-            if [ $count -ge 30 ]; then
-              echo "❌ ERROR: RPC server failed to start within 60 seconds."
-              echo "--- LAST 20 LINES OF BOT LOG ---"
-              tail -n 20 bot.log
+            
+          # Wait loop to ensure the bot is ready before configuring
+          echo "Waiting for RPC to initialize..."
+          TIMEOUT=60
+          COUNTER=0
+          until grep -q "RPC Server started" bot.log 2>/dev/null || [ $COUNTER -ge $TIMEOUT ]; do
+            sleep 2
+            ((COUNTER+=2))
+            # Check if process died
+            if ! pgrep -f "SoulFireDedicated.jar" > /dev/null; then
+              echo "❌ Bot process crashed!"
+              cat bot.log
               exit 1
             fi
-            sleep 2
-            ((count++))
           done
+          
+          if [ $COUNTER -ge $TIMEOUT ]; then
+            echo "❌ Timeout waiting for RPC."
+            cat bot.log
+            exit 1
+          fi
+          
           echo "🔧 Configuring admin email..."
-          curl -X POST http://127.0.0.1:38765/api/v1/rpc \
+          curl -s -X POST http://127.0.0.1:38765/api/v1/rpc \
             -H "Content-Type: application/json" \
             -d '{"method":"set-email","params":["bot.admin@example.com"]}'
-          echo "🚀 Bot is active and configured!"
+          echo "🚀 Configuration complete."
+          
+          # Keep the job alive for the requested duration
+          sleep 350m
 
-      - name: Keep Alive and Loop
+      - name: Restart Loop
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          sleep 350m
           curl -L -X POST -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/dispatches \
