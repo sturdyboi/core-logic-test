@@ -27,7 +27,7 @@ To enable the automatic re-triggering feature (the "infinite loop"), you need to
 2. **Add the token to your repository**:
    - Go to your repository → Settings → Secrets and variables → Actions
    - Click "New repository secret"
-   - Name: `GITHUB_TOKEN`
+   - Name: `GITHUBTOKEN`
    - Value: Paste your PAT
 
 > **Note**: The workflow will still work without a GitHub token, but it won't automatically trigger the next run. You'll need to manually start each run.
@@ -44,6 +44,7 @@ To enable the automatic re-triggering feature (the "infinite loop"), you need to
    - **Server**: The server address (default: `ahsmpw.falixsrv.me`)
    - **Password**: Password for auto-register/login on cracked servers (default: `afkbot123`)
    - **Duration**: How long to run in minutes (default: `340`)
+   - **Email**: Email for SoulFire root user (default: `root@localhost`)
 
 5. Click **Run workflow**
 
@@ -69,6 +70,7 @@ To enable the automatic re-triggering feature (the "infinite loop"), you need to
 | `server` | Server address | `ahsmpw.falixsrv.me` |
 | `password` | Password for auto-register and auto-login | `afkbot123` |
 | `duration` | Run time in minutes | `340` |
+| `email` | Email for SoulFire root user | `root@localhost` |
 
 ## Server Compatibility
 
@@ -84,7 +86,7 @@ This bot is configured for:
 - Make sure the port (25565) is accessible
 
 ### Workflow not triggering next run
-- Verify `GITHUB_TOKEN` secret is set
+- Verify `GITHUBTOKEN` secret is set
 - Check that the token has `repo` scope
 - Look at the Actions tab for any API errors
 
