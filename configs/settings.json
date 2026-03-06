@@ -1,0 +1,12 @@
+{
+  "server_address": "ahsmpw.falixsrv.me",
+  "server_port": 21987,
+  "anti_afk": true,
+  "auto_reconnect": true,
+  "auto_register": {
+    "enabled": true,
+    "password": "<afkbot>",
+    "register_command": "/register <afkbot> <afkbot>",
+    "login_command": "/login <afkbot>"
+  }
+}
