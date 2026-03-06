@@ -49,9 +49,11 @@ jobs:
       - name: Start SoulFire Dedicated
         run: |
           curl -L -o SoulFireDedicated.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
-          # Added -Djava.awt.headless=true to bypass graphics initialization
+          # Added -Djava.awt.headless=true to force command-line only mode
           java -Xmx1G \
             -Djava.awt.headless=true \
+            -Dsun.java2d.uiScale=1.0 \
+            -Dsf.rpc.port=38765 \
             -XX:+EnableDynamicAgentLoading -XX:+UnlockExperimentalVMOptions -XX:+UseZGC \
             -XX:+UseCompactObjectHeaders -XX:+AlwaysActAsServerClassMachine -XX:+UseNUMA \
             -XX:+UseFastUnorderedTimeStamps -XX:+UseVectorCmov -XX:+UseCriticalJavaThreadPriority \
