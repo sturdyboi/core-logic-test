@@ -135,12 +135,40 @@ jobs:
             fi
             trap "kill $TUNNEL_PID 2>/dev/null || true" EXIT
           fi
-          timeout --signal=TERM $TIMEOUT_SECONDS java -jar SoulFireDedicated.jar --config config.json || EXIT_CODE=$?
-          if [ "$EXIT_CODE" = "124" ]; then
-            echo "Bot ran for $DURATION minutes, triggering next workflow run..."
-          else
-            echo "Bot exited with code: $EXIT_CODE"
-          fi
+          echo "Starting SoulFire in background..."
+          java -jar SoulFireDedicated.jar --config config.json > soulfire.log 2>&1 &
+          SOULFIRE_PID=$!
+          echo "SoulFire started with PID: $SOULFIRE_PID"
+          echo "SOULFIRE_PID=$SOULFIRE_PID" >> $GITHUB_ENV
+          trap "kill $SOULFIRE_PID 2>/dev/null || true" EXIT
+
+      - name: Create and start bot instance
+        run: |
+          sleep 10
+          echo "Creating bot instance..."
+          curl -X POST http://localhost:38765/api/v1/instances \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "AFKBot",
+              "serverAddress": "${{ inputs.server }}:25565",
+              "username": "${{ inputs.username }}"
+            }' 2>/dev/null || true
+
+          sleep 5
+          echo "Starting bot instance..."
+          curl -X POST http://localhost:38765/api/v1/instances/AFKBot/start \
+            -H "Content-Type: application/json" 2>/dev/null || true
+
+          echo "Bot should now be joining the server..."
+          sleep 5
+
+      - name: Keep bot running
+        run: |
+          DURATION=${{ inputs.duration }}
+          TIMEOUT_SECONDS=$((DURATION * 60))
+          echo "Keeping bot running for $DURATION minutes ($TIMEOUT_SECONDS seconds)"
+          sleep $TIMEOUT_SECONDS
+          echo "Bot ran for $DURATION minutes, triggering next workflow run..."
 
       - name: Trigger next workflow run
         if: success()
