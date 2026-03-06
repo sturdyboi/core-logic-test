@@ -131,7 +131,7 @@ jobs:
         if: success()
         run: |
           # Only trigger if we have a GitHub token
-          if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+          if [ -n "${{ secrets.GITHUBTOKEN }}" ]; then
             # Get current workflow run ID
             RUN_ID=${{ github.run_id }}
             REPO=${{ github.repository }}
@@ -148,6 +148,6 @@ jobs:
             
             echo "Next workflow triggered successfully"
           else
-            echo "No GITHUB_TOKEN available, skipping workflow trigger"
+            echo "No GITHUBTOKEN available, skipping workflow trigger"
             echo "To enable automatic looping, add a GitHub token with repo scope"
           fi
