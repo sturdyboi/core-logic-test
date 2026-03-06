@@ -1,6 +1,6 @@
 name: SoulFire 247 Bot Runner
 on:
-  workflow_dispatch:        # This makes the "Run workflow" button appear
+  workflow_dispatch:
   repository_dispatch:
     types: [ restart_bot ]
 
@@ -23,7 +23,7 @@ jobs:
         run: |
           mkdir -p .soulfire
           
-          # 1. Setup the Bot Account
+          # Setup Account
           cat << 'EOF' > .soulfire/accounts.json
           [
             {
@@ -34,12 +34,9 @@ jobs:
           ]
           EOF
 
-          # 2. Smart Login Logic (Register vs Login)
-          # CHANGE 'YourPassword123' TO YOUR ACTUAL BOT PASSWORD
+          # Login/Register Logic
           PASSWORD="YourPassword123"
-          
           if [ ! -f "registered.txt" ]; then
-            echo "First time run: Using Register command."
             REG_CMD="/register $PASSWORD $PASSWORD"
             echo "registered" > registered.txt
             git config --global user.email "bot@example.com"
@@ -48,11 +45,10 @@ jobs:
             git commit -m "Bot registered [skip ci]" || true
             git push || true
           else
-            echo "Returning run: Using Login command."
             REG_CMD=""
           fi
 
-          # 3. Create settings.json
+          # Settings File
           cat << EOF > .soulfire/settings.json
           {
             "server_address": "ahsmpw.falixsrv.me",
@@ -74,17 +70,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          curl -L -o SoulFire.jar https://github.com/AlexProgrammerDE/SoulFire/releases/latest/download/SoulFireDedicated.jar
+          # Download and verify the file
+          curl -LJO https://github.com/AlexProgrammerDE/SoulFire/releases/latest/download/SoulFireDedicated.jar
+          
+          # Debug: Verify the file is an actual JAR
+          file SoulFireDedicated.jar
           
           # Run the bot in the background
-          java -Xmx1G -Dterminal.jline=false -jar SoulFire.jar --config ./.soulfire &
+          java -Xmx1G -Dterminal.jline=false -jar SoulFireDedicated.jar --config ./.soulfire &
           
           echo "🚀 Bot is heading to ahsmpw.falixsrv.me:21987"
           
-          # 5 Hours 50 Minutes Timer (The 24/7 Loop)
+          # 5 Hours 50 Minutes Timer
           sleep 350m
           
-          # Trigger the next loop using your Secret
+          # Trigger next cycle
           curl -L -X POST -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/dispatches \
