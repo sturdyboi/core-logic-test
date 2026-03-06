@@ -1,9 +1,6 @@
-name: SoulFire 24/7 Bot Runner
-concurrency:
-  group: soulfire-bot
-  cancel-in-progress: false
+name: SoulFire 247 Bot Runner
 on:
-  workflow_dispatch:
+  workflow_dispatch:        # This makes the "Run workflow" button appear
   repository_dispatch:
     types: [ restart_bot ]
 
@@ -26,7 +23,7 @@ jobs:
         run: |
           mkdir -p .soulfire
           
-          # 1. Setup the Bot Account (Offline Mode)
+          # 1. Setup the Bot Account
           cat << 'EOF' > .soulfire/accounts.json
           [
             {
@@ -37,7 +34,7 @@ jobs:
           ]
           EOF
 
-          # 2. Logic: Register vs Login
+          # 2. Smart Login Logic (Register vs Login)
           # CHANGE 'YourPassword123' TO YOUR ACTUAL BOT PASSWORD
           PASSWORD="YourPassword123"
           
@@ -77,18 +74,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          # Download the Dedicated SoulFire Jar
           curl -L -o SoulFire.jar https://github.com/AlexProgrammerDE/SoulFire/releases/latest/download/SoulFireDedicated.jar
           
-          # Run the bot (Headless mode)
+          # Run the bot in the background
           java -Xmx1G -Dterminal.jline=false -jar SoulFire.jar --config ./.soulfire &
           
-          echo "🚀 Bot connecting to ahsmpw.falixsrv.me:21987"
+          echo "🚀 Bot is heading to ahsmpw.falixsrv.me:21987"
           
-          # Wait 5 Hours 50 Minutes
+          # 5 Hours 50 Minutes Timer (The 24/7 Loop)
           sleep 350m
           
-          # Trigger the next 24/7 loop
+          # Trigger the next loop using your Secret
           curl -L -X POST -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/dispatches \
