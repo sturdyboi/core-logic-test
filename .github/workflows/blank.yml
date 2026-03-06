@@ -6,22 +6,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '25'
           distribution: 'temurin'
 
-      - name: Start Bot
+      - name: Initialize and Start Bot
         run: |
-          # 1. Create the working directory
+          # 1. Create the configuration directory
           mkdir -p .soulfire
           
-          # 2. Copy the prepared settings file from your repo to the bot's folder
-          cp configs/settings.json .soulfire/settings.json
+          # 2. Generate settings.json with your credentials
+          cat << 'EOF' > .soulfire/settings.json
+          {
+            "server_address": "ahsmpw.falixsrv.me",
+            "server_port": 21987,
+            "admin_email": "root@soulfiremc.com",
+            "anti_afk": true,
+            "auto_reconnect": true,
+            "auto_register": {
+              "enabled": true,
+              "password": "<afkbot>",
+              "register_command": "/register <afkbot> <afkbot>",
+              "login_command": "/login <afkbot>"
+            }
+          }
+          EOF
           
-          # 3. Download the JAR
+          # 3. Download the bot
           curl -L -o bot.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
           
           # 4. Run the bot
