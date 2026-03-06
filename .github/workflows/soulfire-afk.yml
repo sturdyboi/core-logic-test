@@ -519,7 +519,7 @@ jobs:
           fi
 
       - name: Send email notification
-        if: always() && inputs.email_enabled
+        if: always() && inputs.email_enabled == 'true'
         run: |
           SUBJECT="[SoulFire] Bot run ${{ job.status }}"
           
