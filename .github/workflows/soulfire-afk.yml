@@ -152,44 +152,115 @@ jobs:
           }
           EOF
 
-      - name: Run SoulFire bot
+      - name: Start LocalTunnel for web UI
+        if: inputs.enable_tunnel == 'true'
         run: |
-          DURATION=${{ inputs.duration }}
-          TIMEOUT_SECONDS=$((DURATION * 60))
-          echo "Running bot for $DURATION minutes ($TIMEOUT_SECONDS seconds)"
-          if [ "${{ inputs.enable_tunnel }}" = "true" ]; then
-            echo "Starting LocalTunnel for SoulFire web UI..."
-            npx localtunnel --port 38765 > tunnel.log 2>&1 &
-            TUNNEL_PID=$!
-            echo "LocalTunnel started with PID: $TUNNEL_PID"
-            sleep 5
-            TUNNEL_URL=$(grep -oE 'https://[a-z0-9-]+\.loca\.lt' tunnel.log | head -n 1)
-            if [ -n "$TUNNEL_URL" ]; then
-              echo "=========================================="
-              echo "🌐 SoulFire Web UI is now accessible at:"
-              echo "$TUNNEL_URL"
-              echo "=========================================="
-              echo "TUNNEL_URL=$TUNNEL_URL" >> $GITHUB_ENV
-            else
-              echo "Warning: Could not extract tunnel URL from output"
-              cat tunnel.log
-            fi
-            trap "kill $TUNNEL_PID 2>/dev/null || true" EXIT
+          echo "Starting LocalTunnel for SoulFire web UI..."
+          npx localtunnel --port 38765 > tunnel.log 2>&1 &
+          TUNNEL_PID=$!
+          echo "LocalTunnel started with PID: $TUNNEL_PID"
+          sleep 5
+          TUNNEL_URL=$(grep -oE 'https://[a-z0-9-]+\.loca\.lt' tunnel.log | head -n 1)
+          if [ -n "$TUNNEL_URL" ]; then
+            echo "=========================================="
+            echo "🌐 SoulFire Web UI is now accessible at:"
+            echo "$TUNNEL_URL"
+            echo "=========================================="
+            echo "TUNNEL_URL=$TUNNEL_URL" >> $GITHUB_ENV
+          else
+            echo "Warning: Could not extract tunnel URL from output"
+            cat tunnel.log
           fi
-          echo "Starting SoulFire in background..."
-          java -jar SoulFireDedicated.jar --config config.json > soulfire.log 2>&1 &
+          echo "TUNNEL_PID=$TUNNEL_PID" >> $GITHUB_ENV
+
+      - name: Start SoulFire in background
+        run: |
+          echo "Starting SoulFire in background with logging..."
+          nohup java -jar SoulFireDedicated.jar --config config.json > soulfire.log 2>&1 &
           SOULFIRE_PID=$!
           echo "SoulFire started with PID: $SOULFIRE_PID"
           echo "SOULFIRE_PID=$SOULFIRE_PID" >> $GITHUB_ENV
-          trap "kill $SOULFIRE_PID 2>/dev/null || true" EXIT
+          
+          # Wait a moment for the process to spawn
+          sleep 3
+          
+          # Verify the process is running
+          if ps -p $SOULFIRE_PID > /dev/null 2>&1; then
+            echo "✓ SoulFire process is alive (PID: $SOULFIRE_PID)"
+          else
+            echo "ERROR: SoulFire process died immediately"
+            cat soulfire.log
+            exit 1
+          fi
 
-      - name: Create and start bot instance
+      - name: Wait for SoulFire web UI to be ready
         run: |
-          sleep 10
           echo "=========================================="
-          echo "Checking if SoulFire web UI is ready..."
+          echo "Waiting for SoulFire web UI to be ready..."
+          echo "=========================================="
+          
+          # Set up authentication if credentials are provided
+          API_AUTH=""
+          if [ -n "${{ inputs.api_username }}" ] && [ -n "${{ inputs.api_password }}" ]; then
+            API_AUTH="--user ${{ inputs.api_username }}:${{ inputs.api_password }}"
+            echo "Using API authentication"
+          else
+            echo "No API credentials provided, attempting unauthenticated access"
+          fi
+          
+          # Retry loop to wait for web UI
+          MAX_ATTEMPTS=30
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Attempt $i/$MAX_ATTEMPTS: Checking http://localhost:38765..."
+            
+            # Check if SoulFire process is still running
+            SOULFIRE_PID=$(echo "$SOULFIRE_PID")
+            if ! ps -p $SOULFIRE_PID > /dev/null 2>&1; then
+              echo "ERROR: SoulFire process died during startup"
+              echo "SoulFire log output:"
+              cat soulfire.log
+              exit 1
+            fi
+            
+            # Check if web UI is responding
+            if curl -s $API_AUTH http://localhost:38765 > /dev/null 2>&1; then
+              echo "✓ SoulFire web UI is responding!"
+              
+              # Additional check - verify API is accessible
+              API_CHECK=$(curl -s -w "%{http_code}" $API_AUTH http://localhost:38765/api/ 2>&1)
+              if echo "$API_CHECK" | grep -q "200\|401\|403"; then
+                echo "✓ API endpoint is accessible"
+                break
+              fi
+            fi
+            
+            echo "✗ Web UI not ready yet, waiting..."
+            
+            if [ $i -eq $MAX_ATTEMPTS ]; then
+              echo "ERROR: SoulFire web UI did not start after $MAX_ATTEMPTS attempts"
+              echo ""
+              echo "SoulFire log output (last 50 lines):"
+              tail -n 50 soulfire.log
+              echo ""
+              echo "Checking if Java process is running..."
+              ps aux | grep -i java || echo "No Java process found"
+              exit 1
+            fi
+            
+            sleep 2
+          done
+          
+          echo ""
+          echo "=========================================="
+          echo "SoulFire is now ready!"
           echo "=========================================="
 
+      - name: Create and start bot instance via API
+        run: |
+          echo "=========================================="
+          echo "Creating bot instance via API..."
+          echo "=========================================="
+          
           # Set up authentication if credentials are provided
           API_AUTH=""
           if [ -n "${{ inputs.api_username }}" ] && [ -n "${{ inputs.api_password }}" ]; then
@@ -198,74 +269,37 @@ jobs:
           else
             echo "No API credentials provided, attempting unauthenticated access"
           fi
-
-          # Check if the web UI is responding
-          for i in {1..30}; do
-            echo "Attempt $i: Checking http://localhost:38765..."
-            if curl -s $API_AUTH http://localhost:38765 > /dev/null 2>&1; then
-              echo "✓ SoulFire web UI is responding!"
-              break
-            else
-              echo "✗ Web UI not responding yet, waiting..."
-              if [ $i -eq 30 ]; then
-                echo "ERROR: SoulFire web UI did not start after 30 attempts"
-                echo "SoulFire log output:"
-                cat soulfire.log
-                exit 1
-              fi
-              sleep 2
-            fi
-          done
-
-          echo ""
-          echo "=========================================="
-          echo "Getting available API endpoints..."
-          echo "=========================================="
-          curl -s $API_AUTH -v http://localhost:38765/api/ 2>&1 || echo "Root API endpoint not accessible"
-
-          echo ""
-          echo "=========================================="
-          echo "Listing existing bot instances..."
-          echo "=========================================="
-          INSTANCES_RESPONSE=$(curl -s -w "\n%{http_code}" $API_AUTH http://localhost:38765/api/v1/instances 2>&1)
-          INSTANCES_HTTP_CODE=$(echo "$INSTANCES_RESPONSE" | tail -n1)
-          INSTANCES_BODY=$(echo "$INSTANCES_RESPONSE" | sed '$d')
-          echo "HTTP Status: $INSTANCES_HTTP_CODE"
-          echo "Response Body: $INSTANCES_BODY"
-
-          echo ""
-          echo "=========================================="
-          echo "Creating bot instance..."
-          echo "=========================================="
+          
           echo "Bot name: AFKBot"
           echo "Server: ${{ inputs.server }}:25565"
           echo "Username: ${{ inputs.username }}"
 
+          # Try to create the bot instance
           CREATE_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:38765/api/v1/instances \
             -H "Content-Type: application/json" \
             $API_AUTH \
-            -d '{
-              "name": "AFKBot",
-              "serverAddress": "${{ inputs.server }}:25565",
-              "username": "${{ inputs.username }}"
-            }' 2>&1)
+            -d "{
+              \"name\": \"AFKBot\",
+              \"serverAddress\": \"${{ inputs.server }}:25565\",
+              \"username\": \"${{ inputs.username }}\"
+            }" 2>&1)
           CREATE_HTTP_CODE=$(echo "$CREATE_RESPONSE" | tail -n1)
           CREATE_BODY=$(echo "$CREATE_RESPONSE" | sed '$d')
           echo "HTTP Status: $CREATE_HTTP_CODE"
           echo "Response Body: $CREATE_BODY"
 
           if [ "$CREATE_HTTP_CODE" != "200" ] && [ "$CREATE_HTTP_CODE" != "201" ] && [ "$CREATE_HTTP_CODE" != "204" ]; then
-            echo "ERROR: Failed to create bot instance (HTTP $CREATE_HTTP_CODE)"
-            echo "Checking if instance already exists..."
+            echo "Bot instance creation returned non-success status, checking if it already exists..."
             EXISTING_CHECK=$(curl -s -w "\n%{http_code}" $API_AUTH http://localhost:38765/api/v1/instances/AFKBot 2>&1)
             EXISTING_CODE=$(echo "$EXISTING_CHECK" | tail -n1)
             EXISTING_BODY=$(echo "$EXISTING_CHECK" | sed '$d')
             echo "Existing instance check HTTP Status: $EXISTING_CODE"
             echo "Existing instance check Body: $EXISTING_BODY"
             if [ "$EXISTING_CODE" = "200" ]; then
-              echo "✓ Bot instance already exists, will try to start it directly"
+              echo "✓ Bot instance already exists, will try to start it"
             else
               echo "✗ Bot instance does not exist and creation failed"
+              echo "Full response: $CREATE_BODY"
               exit 1
             fi
           else
@@ -273,6 +307,7 @@ jobs:
           fi
 
           sleep 5
+          
           echo ""
           echo "=========================================="
           echo "Starting bot instance..."
