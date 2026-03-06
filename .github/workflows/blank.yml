@@ -49,15 +49,15 @@ jobs:
       - name: Start SoulFire Dedicated
         run: |
           curl -L -o SoulFireDedicated.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
-          # Added -Djava.awt.headless=true to force command-line only mode
+          
+          # We are grouping all flags directly before the -jar argument
           java -Xmx1G \
             -Djava.awt.headless=true \
-            -Dsun.java2d.uiScale=1.0 \
-            -Dsf.rpc.port=38765 \
+            -Dheadlesmc.no-gui=true \
+            -Dsf.flags.v2=true \
             -XX:+EnableDynamicAgentLoading -XX:+UnlockExperimentalVMOptions -XX:+UseZGC \
             -XX:+UseCompactObjectHeaders -XX:+AlwaysActAsServerClassMachine -XX:+UseNUMA \
             -XX:+UseFastUnorderedTimeStamps -XX:+UseVectorCmov -XX:+UseCriticalJavaThreadPriority \
-            -Dsf.flags.v2=true -Dterminal.jline=false \
             -jar SoulFireDedicated.jar --config ./.soulfire > bot.log 2>&1 &
 
       - name: Wait for RPC and Configure
