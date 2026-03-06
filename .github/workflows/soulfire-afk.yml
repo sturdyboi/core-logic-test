@@ -117,12 +117,6 @@ jobs:
           EOF
           cat plugins/AutoAuth/config.json
 
-      - name: Set SoulFire email
-        run: |
-          echo "Setting SoulFire root email..."
-          java -jar SoulFireDedicated.jar set-email root@soulfiremc.com
-          echo "Email set successfully"
-
       - name: Run SoulFire bot
         run: |
           # Calculate timeout in seconds (duration from input, default 340 minutes)
