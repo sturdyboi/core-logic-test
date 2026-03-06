@@ -7,7 +7,7 @@ A GitHub Actions workflow that runs a Minecraft AFK bot using SoulFire to stay c
 - **Auto-registration & Auto-login**: Works with cracked/offline servers (like Falix)
 - **Anti-AFK**: Prevents the server from kicking the bot due to inactivity
 - **Auto-reconnect**: Automatically reconnects if the connection is lost
-- **Headless mode**: Runs in CI environment without display
+- **Web UI access**: LocalTunnel integration to access SoulFire's web interface remotely
 - **Continuous operation**: Triggers new workflow runs to stay online indefinitely
 - **Configurable duration**: Run for up to 5h40m (340 minutes) before re-triggering
 
@@ -44,16 +44,22 @@ To enable the automatic re-triggering feature (the "infinite loop"), you need to
    - **Server**: The server address (default: `ahsmpw.falixsrv.me`)
    - **Password**: Password for auto-register/login on cracked servers (default: `afkbot123`)
    - **Duration**: How long to run in minutes (default: `340`)
+   - **Enable Tunnel**: Enable LocalTunnel to access SoulFire's web UI (default: `true`)
 
 5. Click **Run workflow**
+
+6. After the workflow starts, look for the tunnel URL in the logs (e.g., `https://abc123.loca.lt`)
+7. Click the URL to access the SoulFire web interface
 
 ### How It Works
 
 1. The workflow downloads the latest SoulFireDedicated.jar from GitHub releases
-2. Creates a configuration file with your settings
-3. Runs the bot in headless mode for the specified duration (default: 340 minutes = 5h40m)
-4. After the duration completes, it triggers a new workflow run via GitHub API
-5. The new run starts fresh, and the cycle continues
+2. Installs LocalTunnel to expose the SoulFire web UI (if enabled)
+3. Creates a configuration file with your settings
+4. Starts LocalTunnel pointing to port 38765 (SoulFire's web UI port)
+5. Runs the bot for the specified duration (default: 340 minutes = 5h40m)
+6. After the duration completes, it triggers a new workflow run via GitHub API
+7. The new run starts fresh, and the cycle continues
 
 ### Duration Settings
 
@@ -69,6 +75,25 @@ To enable the automatic re-triggering feature (the "infinite loop"), you need to
 | `server` | Server address | `ahsmpw.falixsrv.me` |
 | `password` | Password for auto-register and auto-login | `afkbot123` |
 | `duration` | Run time in minutes | `340` |
+| `enable_tunnel` | Enable LocalTunnel for web UI access | `true` |
+
+## LocalTunnel Web UI Access
+
+When `enable_tunnel` is set to `true`, the workflow will:
+
+1. Install LocalTunnel via npm (no auth token required)
+2. Start LocalTunnel in the background, pointing to port 38765
+3. Display a public URL (e.g., `https://abc123.loca.lt`) in the workflow logs
+4. Automatically clean up the tunnel when the workflow ends
+
+The SoulFire web UI allows you to:
+- View real-time bot status
+- Monitor server connection
+- Check bot position and inventory
+- Access bot logs
+- Manually control the bot (if enabled)
+
+> **Note**: LocalTunnel provides a free service without requiring authentication, making it easier to set up than ngrok. The tunnel URL changes on each workflow run.
 
 ## Server Compatibility
 
@@ -91,6 +116,13 @@ This bot is configured for:
 ### Getting kicked for AFK
 - The anti-AFK feature should prevent this
 - Check SoulFire logs for any issues
+
+### LocalTunnel not working
+- Check that `enable_tunnel` is set to `true` in the workflow inputs
+- Look for the tunnel URL in the "Run SoulFire bot" step logs
+- If the URL is not displayed, check the `tunnel.log` output in the workflow run
+- LocalTunnel may be temporarily unavailable - wait a moment and try again
+- The tunnel URL changes on each workflow run, so you'll need to get the new URL each time
 
 ## License
 
