@@ -5,7 +5,7 @@ on:
     types: [ restart_bot ]
 
 jobs:
-  run-soulfire:
+  soulfire-runner-v2:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,7 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
 
-      - name: Start SoulFire
+      - name: Run SoulFire
         run: |
           mkdir -p .soulfire
           cat << 'EOF' > .soulfire/accounts.json
@@ -31,10 +31,12 @@ jobs:
           
           curl -L -o SoulFireDedicated.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
           
-          java -Xmx1G -Djava.awt.headless=true -Dheadlesmc.no-gui=true -jar SoulFireDedicated.jar --config ./.soulfire > bot.log 2>&1 &
+          # Run bot and print logs immediately
+          java -Xmx1G -Djava.awt.headless=true -Dheadlesmc.no-gui=true -jar SoulFireDedicated.jar --config ./.soulfire &
           
-          echo "Bot started. Waiting 30s to see if it connects..."
+          echo "Bot started. Waiting 30s to initialize connection..."
           sleep 30
-          echo "--- BOT LOG END ---"
-          tail -n 50 bot.log
+          echo "--- FINAL LOG OUTPUT ---"
+          tail -n 50 bot.log || echo "Log file not found."
+          
           sleep 350m
