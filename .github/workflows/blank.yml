@@ -23,7 +23,6 @@ jobs:
         run: |
           mkdir -p .soulfire
           
-          # Setup Account
           cat << 'EOF' > .soulfire/accounts.json
           [
             {
@@ -34,7 +33,6 @@ jobs:
           ]
           EOF
 
-          # Login/Register Logic
           PASSWORD="YourPassword123"
           if [ ! -f "registered.txt" ]; then
             REG_CMD="/register $PASSWORD $PASSWORD"
@@ -48,7 +46,6 @@ jobs:
             REG_CMD=""
           fi
 
-          # Settings File
           cat << EOF > .soulfire/settings.json
           {
             "server_address": "ahsmpw.falixsrv.me",
@@ -67,37 +64,41 @@ jobs:
           EOF
 
       - name: Start SoulFire Dedicated
-        env:
-          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          # 1. Start the bot with recommended performance flags
-          # We added -Dsf.flags.v2=true to silence the performance warning
+          curl -L -o SoulFireDedicated.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
           java -Xmx1G \
             -XX:+EnableDynamicAgentLoading -XX:+UnlockExperimentalVMOptions -XX:+UseZGC \
             -XX:+UseCompactObjectHeaders -XX:+AlwaysActAsServerClassMachine -XX:+UseNUMA \
             -XX:+UseFastUnorderedTimeStamps -XX:+UseVectorCmov -XX:+UseCriticalJavaThreadPriority \
             -Dsf.flags.v2=true -Dterminal.jline=false \
-            -jar SoulFireDedicated.jar --config ./.soulfire &
+            -jar SoulFireDedicated.jar --config ./.soulfire > bot.log 2>&1 &
 
-          # 2. Wait until the RPC server is actually responding
+      - name: Wait for RPC and Configure
+        run: |
           echo "Waiting for RPC server to start..."
-          until curl -s http://127.0.0.1:38765/api/v1/rpc > /dev/null; do
+          count=0
+          while ! grep -q "RPC Server started" bot.log; do
+            if [ $count -ge 30 ]; then
+              echo "Error: RPC server failed to start within 60 seconds."
+              cat bot.log
+              exit 1
+            fi
             sleep 2
-            echo "Still waiting..."
+            ((count++))
           done
 
-          # 3. Now configure the email
           echo "🔧 Configuring admin email..."
           curl -X POST http://127.0.0.1:38765/api/v1/rpc \
             -H "Content-Type: application/json" \
             -d '{"method":"set-email","params":["bot.admin@example.com"]}'
           
           echo "🚀 Bot is active and configured!"
-          
-          # Timer
+
+      - name: Keep Alive and Loop
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
           sleep 350m
-          
-          # Restart trigger
           curl -L -X POST -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/dispatches \
