@@ -42,6 +42,7 @@ To enable the automatic re-triggering feature (the "infinite loop"), you need to
 4. Optionally customize:
    - **Username**: The bot's in-game name (default: `AFKBot`)
    - **Server**: The server address (default: `ahsmpw.falixsrv.me`)
+   - **Password**: Password for auto-register/login on cracked servers (default: `afkbot123`)
    - **Duration**: How long to run in minutes (default: `340`)
 
 5. Click **Run workflow**
@@ -66,6 +67,7 @@ To enable the automatic re-triggering feature (the "infinite loop"), you need to
 |--------|-------------|---------|
 | `username` | Bot's username (cracked server) | `AFKBot` |
 | `server` | Server address | `ahsmpw.falixsrv.me` |
+| `password` | Password for auto-register and auto-login | `afkbot123` |
 | `duration` | Run time in minutes | `340` |
 
 ## Server Compatibility
