@@ -11,8 +11,10 @@ jobs:
   run-soulfire:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Java 21
         uses: actions/setup-java@v4
@@ -35,35 +37,59 @@ jobs:
           ]
           EOF
 
-          # 2. Setup the Connection (Falix IP + Custom Port)
-          cat << 'EOF' > .soulfire/settings.json
+          # 2. Logic: Register vs Login
+          # CHANGE 'YourPassword123' TO YOUR ACTUAL BOT PASSWORD
+          PASSWORD="YourPassword123"
+          
+          if [ ! -f "registered.txt" ]; then
+            echo "First time run: Using Register command."
+            REG_CMD="/register $PASSWORD $PASSWORD"
+            echo "registered" > registered.txt
+            git config --global user.email "bot@example.com"
+            git config --global user.name "BotUpdater"
+            git add registered.txt
+            git commit -m "Bot registered [skip ci]" || true
+            git push || true
+          else
+            echo "Returning run: Using Login command."
+            REG_CMD=""
+          fi
+
+          # 3. Create settings.json
+          cat << EOF > .soulfire/settings.json
           {
             "server_address": "ahsmpw.falixsrv.me",
             "server_port": 21987,
             "anti_afk": true,
             "auto_reconnect": true,
             "reconnect_delay": 5000,
-            "show_chat": true,
-            "auto_respawn": true
+            "auto_respawn": true,
+            "auto_register": {
+              "enabled": true,
+              "password": "$PASSWORD",
+              "register_command": "$REG_CMD",
+              "login_command": "/login %password%"
+            }
           }
           EOF
 
       - name: Start SoulFire Dedicated
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          # Download the official SoulFire Dedicated Jar
+          # Download the Dedicated SoulFire Jar
           curl -L -o SoulFire.jar https://github.com/AlexProgrammerDE/SoulFire/releases/latest/download/SoulFireDedicated.jar
           
-          # Run the bot with headless terminal settings
+          # Run the bot (Headless mode)
           java -Xmx1G -Dterminal.jline=false -jar SoulFire.jar --config ./.soulfire &
           
-          echo "🚀 Bot is heading to ahsmpw.falixsrv.me:21987"
+          echo "🚀 Bot connecting to ahsmpw.falixsrv.me:21987"
           
-          # 5 Hours 50 Minutes Timer (The 24/7 Loop)
+          # Wait 5 Hours 50 Minutes
           sleep 350m
           
-          # Restart the cycle
+          # Trigger the next 24/7 loop
           curl -L -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/dispatches \
             -d '{"event_type": "restart_bot"}'
