@@ -25,22 +25,37 @@ jobs:
       - name: Download SoulFire Dedicated JAR
         run: |
           # Get the latest release version from GitHub API
-          VERSION=$(curl -sL https://api.github.com/repos/AlexProgrammerDE/SoulFire/releases/latest | grep -o '"tag_name": *"v\([^"]*\)"' | cut -d'"' -f4)
+          VERSION=$(curl -sL https://api.github.com/repos/AlexProgrammerDE/SoulFire/releases/latest | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
           echo "Latest SoulFire version: $VERSION"
-          
-          # Construct download URL for SoulFireDedicated.jar
-          DOWNLOAD_URL="https://github.com/AlexProgrammerDE/SoulFire/releases/download/v${VERSION}/SoulFireDedicated.jar"
+
+          # Construct download URL for SoulFireDedicated.jar (note: includes version in filename)
+          DOWNLOAD_URL="https://github.com/AlexProgrammerDE/SoulFire/releases/download/${VERSION}/SoulFireDedicated-${VERSION}.jar"
           echo "Downloading from: $DOWNLOAD_URL"
-          
-          curl -L -o SoulFireDedicated.jar "$DOWNLOAD_URL"
-          
-          # Verify the file was downloaded
-          if [ -f SoulFireDedicated.jar ]; then
-            ls -lh SoulFireDedicated.jar
-          else
-            echo "Failed to download SoulFireDedicated.jar"
+
+          # Download with redirect following and fail on error
+          curl -L -f -o SoulFireDedicated.jar "$DOWNLOAD_URL"
+
+          # Verify the file was downloaded and is a valid JAR
+          if [ ! -f SoulFireDedicated.jar ]; then
+            echo "ERROR: Failed to download SoulFireDedicated.jar"
             exit 1
           fi
+
+          # Check file size is reasonable (at least 1MB)
+          FILE_SIZE=$(stat -f%z SoulFireDedicated.jar 2>/dev/null || stat -c%s SoulFireDedicated.jar 2>/dev/null)
+          if [ "$FILE_SIZE" -lt 1048576 ]; then
+            echo "ERROR: Downloaded file is too small ($FILE_SIZE bytes), likely not a valid JAR"
+            exit 1
+          fi
+
+          # Verify it's a valid ZIP/JAR file (JARs are ZIP files)
+          if ! unzip -t SoulFireDedicated.jar >/dev/null 2>&1; then
+            echo "ERROR: Downloaded file is not a valid JAR archive"
+            exit 1
+          fi
+
+          echo "JAR verification successful"
+          ls -lh SoulFireDedicated.jar
 
       - name: Create SoulFire config file
         run: |
