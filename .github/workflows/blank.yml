@@ -70,33 +70,34 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          # Download correct 2.6.1 JAR
-          curl -L -o SoulFireDedicated.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
+          # 1. Start the bot with recommended performance flags
+          # We added -Dsf.flags.v2=true to silence the performance warning
+          java -Xmx1G \
+            -XX:+EnableDynamicAgentLoading -XX:+UnlockExperimentalVMOptions -XX:+UseZGC \
+            -XX:+UseCompactObjectHeaders -XX:+AlwaysActAsServerClassMachine -XX:+UseNUMA \
+            -XX:+UseFastUnorderedTimeStamps -XX:+UseVectorCmov -XX:+UseCriticalJavaThreadPriority \
+            -Dsf.flags.v2=true -Dterminal.jline=false \
+            -jar SoulFireDedicated.jar --config ./.soulfire &
+
+          # 2. Wait until the RPC server is actually responding
+          echo "Waiting for RPC server to start..."
+          until curl -s http://127.0.0.1:38765/api/v1/rpc > /dev/null; do
+            sleep 2
+            echo "Still waiting..."
+          done
+
+          # 3. Now configure the email
+          echo "🔧 Configuring admin email..."
+          curl -X POST http://127.0.0.1:38765/api/v1/rpc \
+            -H "Content-Type: application/json" \
+            -d '{"method":"set-email","params":["bot.admin@example.com"]}'
           
-          # Verify file type
-          if file SoulFireDedicated.jar | grep -q "Zip archive"; then
-            echo "✅ File verified as JAR. Starting bot..."
-            
-            # Start the bot and set the admin email automatically
-            # We use a short sleep to ensure the RPC server is up before sending the command
-            java -Xmx1G -Dterminal.jline=false -jar SoulFireDedicated.jar --config ./.soulfire &
-            sleep 15
-            
-            echo "🔧 Configuring admin email..."
-            # Adjust the RPC command to set the email
-            curl -X POST http://127.0.0.1:38765/api/v1/rpc -d '{"method":"set-email","params":["bot.admin@example.com"]}'
-            
-          else
-            echo "❌ ERROR: Downloaded file is NOT a valid JAR!"
-            exit 1
-          fi
+          echo "🚀 Bot is active and configured!"
           
-          echo "🚀 Bot is heading to ahsmpw.falixsrv.me:21987"
-          
-          # 5 Hours 50 Minutes Timer
+          # Timer
           sleep 350m
           
-          # Trigger next cycle
+          # Restart trigger
           curl -L -X POST -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/dispatches \
