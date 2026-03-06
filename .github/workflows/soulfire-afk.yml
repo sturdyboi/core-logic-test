@@ -511,8 +511,7 @@ jobs:
           fi
 
       - name: Stop ngrok
-        if: ${{ inputs.enable_ngrok }}
-        if: always()
+        if: always() && inputs.enable_ngrok
         run: |
           if [ -n "$NGROK_PID" ]; then
             kill $NGROK_PID 2>/dev/null || true
@@ -520,8 +519,7 @@ jobs:
           fi
 
       - name: Send email notification
-        if: ${{ inputs.email_enabled }}
-        if: always()
+        if: always() && inputs.email_enabled
         run: |
           SUBJECT="[SoulFire] Bot run ${{ job.status }}"
           
