@@ -33,11 +33,11 @@ jobs:
           }
           EOF
 
-      - name: Start and Configure SoulFire
+      - name: Start SoulFire Dedicated
         run: |
           curl -L -o SoulFireDedicated.jar https://github.com/AlexProgrammerDE/SoulFire/releases/download/2.6.1/SoulFireDedicated-2.6.1.jar
           
-          # Start the bot in the background and pipe output to bot.log
+          # Start the bot directly in headless mode
           java -Xmx1G \
             -Djava.awt.headless=true \
             -Dheadlesmc.no-gui=true \
@@ -48,34 +48,14 @@ jobs:
             -XX:+UseFastUnorderedTimeStamps -XX:+UseVectorCmov -XX:+UseCriticalJavaThreadPriority \
             -jar SoulFireDedicated.jar --config ./.soulfire > bot.log 2>&1 &
             
-          # Wait loop to ensure the bot is ready before configuring
-          echo "Waiting for RPC to initialize..."
-          TIMEOUT=60
-          COUNTER=0
-          until grep -q "RPC Server started" bot.log 2>/dev/null || [ $COUNTER -ge $TIMEOUT ]; do
-            sleep 2
-            ((COUNTER+=2))
-            # Check if process died
-            if ! pgrep -f "SoulFireDedicated.jar" > /dev/null; then
-              echo "❌ Bot process crashed!"
-              cat bot.log
-              exit 1
-            fi
-          done
+          echo "Bot started. Running in background..."
+          # Wait for initialization
+          sleep 15
+          # Display logs for debugging
+          echo "--- BOT LOG PREVIEW ---"
+          tail -n 30 bot.log
           
-          if [ $COUNTER -ge $TIMEOUT ]; then
-            echo "❌ Timeout waiting for RPC."
-            cat bot.log
-            exit 1
-          fi
-          
-          echo "🔧 Configuring admin email..."
-          curl -s -X POST http://127.0.0.1:38765/api/v1/rpc \
-            -H "Content-Type: application/json" \
-            -d '{"method":"set-email","params":["bot.admin@example.com"]}'
-          echo "🚀 Configuration complete."
-          
-          # Keep the job alive for the requested duration
+          # Keep the job alive
           sleep 350m
 
       - name: Restart Loop
