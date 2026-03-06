@@ -15,6 +15,14 @@ on:
         description: 'Password for auto-register and auto-login'
         required: false
         default: 'afkbot123'
+      api_username:
+        description: 'SoulFire API username (if auth is enabled)'
+        required: false
+        default: ''
+      api_password:
+        description: 'SoulFire API password (if auth is enabled)'
+        required: false
+        default: ''
       duration:
         description: 'Run duration in minutes'
         required: false
@@ -70,7 +78,37 @@ jobs:
 
       - name: Create SoulFire config file
         run: |
-          cat > config.json << 'EOF'
+          if [ -n "${{ inputs.api_username }}" ] && [ -n "${{ inputs.api_password }}" ]; then
+            echo "Creating config with API authentication enabled..."
+            cat > config.json << EOF
+          {
+            "server": {
+              "address": "${{ inputs.server }}",
+              "port": 25565
+            },
+            "auth": {
+              "onlineMode": false,
+              "username": "${{ inputs.username }}"
+            },
+            "bot": {
+              "antiAFK": true,
+              "autoReconnect": true,
+              "reconnectDelay": 5
+            },
+            "ui": {
+              "headless": false,
+              "web": {
+                "port": 38765,
+                "host": "0.0.0.0",
+                "username": "${{ inputs.api_username }}",
+                "password": "${{ inputs.api_password }}"
+              }
+            }
+          }
+          EOF
+          else
+            echo "Creating config without API authentication..."
+            cat > config.json << 'EOF'
           {
             "server": {
               "address": "${{ inputs.server }}",
@@ -94,6 +132,9 @@ jobs:
             }
           }
           EOF
+          fi
+          echo "Config file created:"
+          cat config.json
 
       - name: Create SoulFire plugins config for auto-register/login
         run: |
@@ -145,22 +186,143 @@ jobs:
       - name: Create and start bot instance
         run: |
           sleep 10
+          echo "=========================================="
+          echo "Checking if SoulFire web UI is ready..."
+          echo "=========================================="
+
+          # Set up authentication if credentials are provided
+          API_AUTH=""
+          if [ -n "${{ inputs.api_username }}" ] && [ -n "${{ inputs.api_password }}" ]; then
+            API_AUTH="--user ${{ inputs.api_username }}:${{ inputs.api_password }}"
+            echo "Using API authentication with username: ${{ inputs.api_username }}"
+          else
+            echo "No API credentials provided, attempting unauthenticated access"
+          fi
+
+          # Check if the web UI is responding
+          for i in {1..30}; do
+            echo "Attempt $i: Checking http://localhost:38765..."
+            if curl -s $API_AUTH http://localhost:38765 > /dev/null 2>&1; then
+              echo "✓ SoulFire web UI is responding!"
+              break
+            else
+              echo "✗ Web UI not responding yet, waiting..."
+              if [ $i -eq 30 ]; then
+                echo "ERROR: SoulFire web UI did not start after 30 attempts"
+                echo "SoulFire log output:"
+                cat soulfire.log
+                exit 1
+              fi
+              sleep 2
+            fi
+          done
+
+          echo ""
+          echo "=========================================="
+          echo "Getting available API endpoints..."
+          echo "=========================================="
+          curl -s $API_AUTH -v http://localhost:38765/api/ 2>&1 || echo "Root API endpoint not accessible"
+
+          echo ""
+          echo "=========================================="
+          echo "Listing existing bot instances..."
+          echo "=========================================="
+          INSTANCES_RESPONSE=$(curl -s -w "\n%{http_code}" $API_AUTH http://localhost:38765/api/v1/instances 2>&1)
+          INSTANCES_HTTP_CODE=$(echo "$INSTANCES_RESPONSE" | tail -n1)
+          INSTANCES_BODY=$(echo "$INSTANCES_RESPONSE" | sed '$d')
+          echo "HTTP Status: $INSTANCES_HTTP_CODE"
+          echo "Response Body: $INSTANCES_BODY"
+
+          echo ""
+          echo "=========================================="
           echo "Creating bot instance..."
-          curl -X POST http://localhost:38765/api/v1/instances \
+          echo "=========================================="
+          echo "Bot name: AFKBot"
+          echo "Server: ${{ inputs.server }}:25565"
+          echo "Username: ${{ inputs.username }}"
+
+          CREATE_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:38765/api/v1/instances \
             -H "Content-Type: application/json" \
+            $API_AUTH \
             -d '{
               "name": "AFKBot",
               "serverAddress": "${{ inputs.server }}:25565",
               "username": "${{ inputs.username }}"
-            }' 2>/dev/null || true
+            }' 2>&1)
+          CREATE_HTTP_CODE=$(echo "$CREATE_RESPONSE" | tail -n1)
+          CREATE_BODY=$(echo "$CREATE_RESPONSE" | sed '$d')
+          echo "HTTP Status: $CREATE_HTTP_CODE"
+          echo "Response Body: $CREATE_BODY"
+
+          if [ "$CREATE_HTTP_CODE" != "200" ] && [ "$CREATE_HTTP_CODE" != "201" ] && [ "$CREATE_HTTP_CODE" != "204" ]; then
+            echo "ERROR: Failed to create bot instance (HTTP $CREATE_HTTP_CODE)"
+            echo "Checking if instance already exists..."
+            EXISTING_CHECK=$(curl -s -w "\n%{http_code}" $API_AUTH http://localhost:38765/api/v1/instances/AFKBot 2>&1)
+            EXISTING_CODE=$(echo "$EXISTING_CHECK" | tail -n1)
+            EXISTING_BODY=$(echo "$EXISTING_CHECK" | sed '$d')
+            echo "Existing instance check HTTP Status: $EXISTING_CODE"
+            echo "Existing instance check Body: $EXISTING_BODY"
+            if [ "$EXISTING_CODE" = "200" ]; then
+              echo "✓ Bot instance already exists, will try to start it directly"
+            else
+              echo "✗ Bot instance does not exist and creation failed"
+              exit 1
+            fi
+          else
+            echo "✓ Bot instance created successfully"
+          fi
 
           sleep 5
+          echo ""
+          echo "=========================================="
           echo "Starting bot instance..."
-          curl -X POST http://localhost:38765/api/v1/instances/AFKBot/start \
-            -H "Content-Type: application/json" 2>/dev/null || true
+          echo "=========================================="
 
+          START_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:38765/api/v1/instances/AFKBot/start \
+            -H "Content-Type: application/json" \
+            $API_AUTH 2>&1)
+          START_HTTP_CODE=$(echo "$START_RESPONSE" | tail -n1)
+          START_BODY=$(echo "$START_RESPONSE" | sed '$d')
+          echo "HTTP Status: $START_HTTP_CODE"
+          echo "Response Body: $START_BODY"
+
+          if [ "$START_HTTP_CODE" != "200" ] && [ "$START_HTTP_CODE" != "204" ]; then
+            echo "ERROR: Failed to start bot instance (HTTP $START_HTTP_CODE)"
+            echo "Bot instance details:"
+            curl -s $API_AUTH http://localhost:38765/api/v1/instances/AFKBot || echo "Failed to get instance details"
+            echo ""
+            echo "SoulFire log (last 50 lines):"
+            tail -n 50 soulfire.log
+            exit 1
+          else
+            echo "✓ Bot instance started successfully"
+          fi
+
+          echo ""
+          echo "=========================================="
+          echo "Checking bot instance status..."
+          echo "=========================================="
+          sleep 3
+          STATUS_RESPONSE=$(curl -s -w "\n%{http_code}" $API_AUTH http://localhost:38765/api/v1/instances/AFKBot 2>&1)
+          STATUS_HTTP_CODE=$(echo "$STATUS_RESPONSE" | tail -n1)
+          STATUS_BODY=$(echo "$STATUS_RESPONSE" | sed '$d')
+          echo "HTTP Status: $STATUS_HTTP_CODE"
+          echo "Response Body: $STATUS_BODY"
+
+          echo ""
+          echo "=========================================="
           echo "Bot should now be joining the server..."
-          sleep 5
+          echo "=========================================="
+          echo "Waiting 10 seconds for connection..."
+          sleep 10
+
+          echo ""
+          echo "Checking if bot is connected..."
+          tail -n 20 soulfire.log | grep -E "(Connected|Joining|Logged in|Error|Failed)" || echo "No connection status found in recent logs"
+
+          echo ""
+          echo "Recent SoulFire log output:"
+          tail -n 30 soulfire.log
 
       - name: Keep bot running
         run: |
@@ -182,7 +344,7 @@ jobs:
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/repos/$REPO/actions/workflows/soulfire-afk.yml/dispatches" \
-              -d '{"ref": "${{ github.ref }}", "inputs": {"username": "${{ inputs.username }}", "server": "${{ inputs.server }}", "password": "${{ inputs.password }}", "duration": "${{ inputs.duration }}", "enable_tunnel": "${{ inputs.enable_tunnel }}"}}'
+              -d '{"ref": "${{ github.ref }}", "inputs": {"username": "${{ inputs.username }}", "server": "${{ inputs.server }}", "password": "${{ inputs.password }}", "api_username": "${{ inputs.api_username }}", "api_password": "${{ inputs.api_password }}", "duration": "${{ inputs.duration }}", "enable_tunnel": "${{ inputs.enable_tunnel }}"}}'
             echo "Next workflow triggered successfully"
           else
             echo "No GITHUB_TOKEN available, skipping workflow trigger"

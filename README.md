@@ -43,6 +43,8 @@ To enable the automatic re-triggering feature (the "infinite loop"), you need to
    - **Username**: The bot's in-game name (default: `AFKBot`)
    - **Server**: The server address (default: `ahsmpw.falixsrv.me`)
    - **Password**: Password for auto-register/login on cracked servers (default: `afkbot123`)
+   - **API Username**: SoulFire web UI username if authentication is enabled (optional)
+   - **API Password**: SoulFire web UI password if authentication is enabled (optional)
    - **Duration**: How long to run in minutes (default: `340`)
    - **Enable Tunnel**: Enable LocalTunnel to access SoulFire's web UI (default: `true`)
 
@@ -74,6 +76,8 @@ To enable the automatic re-triggering feature (the "infinite loop"), you need to
 | `username` | Bot's username (cracked server) | `AFKBot` |
 | `server` | Server address | `ahsmpw.falixsrv.me` |
 | `password` | Password for auto-register and auto-login | `afkbot123` |
+| `api_username` | SoulFire web UI username (optional) | (empty) |
+| `api_password` | SoulFire web UI password (optional) | (empty) |
 | `duration` | Run time in minutes | `340` |
 | `enable_tunnel` | Enable LocalTunnel for web UI access | `true` |
 
@@ -107,6 +111,14 @@ This bot is configured for:
 - Check the server address is correct
 - Verify the server is online
 - Make sure the port (25565) is accessible
+- Review the "Create and start bot instance" step logs for API response details
+- Check if the SoulFire web UI requires authentication and provide API credentials
+
+### Bot instance creation fails
+- Check the HTTP status codes and response bodies in the workflow logs
+- If you get 401/403 errors, provide API username and password in the workflow inputs
+- Verify the SoulFire web UI is responding (look for "✓ SoulFire web UI is responding!")
+- Check the SoulFire log output for any errors
 
 ### Workflow not triggering next run
 - Verify `GITHUB_TOKEN` secret is set
@@ -123,6 +135,13 @@ This bot is configured for:
 - If the URL is not displayed, check the `tunnel.log` output in the workflow run
 - LocalTunnel may be temporarily unavailable - wait a moment and try again
 - The tunnel URL changes on each workflow run, so you'll need to get the new URL each time
+
+### API Authentication Issues
+- If your SoulFire instance requires authentication, provide `api_username` and `api_password` in the workflow inputs
+- These credentials will be used both for:
+  - Authenticating API calls to create/start the bot instance
+  - Configuring SoulFire's web UI with the same credentials
+- If authentication is not required, leave these fields empty (default behavior)
 
 ## License
 

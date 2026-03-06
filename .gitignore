@@ -12,3 +12,10 @@ Thumbs.db
 .idea/
 .vscode/
 *.iml
+
+# SoulFire runtime files
+SoulFireDedicated.jar
+config.json
+plugins/
+soulfire.log
+tunnel.log
